@@ -4,7 +4,7 @@ final class CircleOverlayController {
     private let baseDiameter: CGFloat = 40
     private let maxDiameter: CGFloat = 120
     private let totalDuration: TimeInterval = 0.5
-    private let steps = 6
+    private let steps = 12
 
     private let window: NSWindow
     private var animationTimer: Timer?
