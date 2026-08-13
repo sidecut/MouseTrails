@@ -5,6 +5,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let overlayController = CircleOverlayController()
     private var globalMonitor: Any?
     private var wasControlPressed = false
+    private var toggleMenuItem: NSMenuItem?
+    private var isEnabled = true
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -28,6 +30,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let menu = NSMenu()
+        let toggleItem = NSMenuItem(title: "Enabled", action: #selector(toggleEnabled), keyEquivalent: "")
+        toggleItem.state = isEnabled ? .on : .off
+        menu.addItem(toggleItem)
+        toggleMenuItem = toggleItem
+
+        menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "About MouseTrails", action: #selector(showAbout), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
@@ -55,9 +63,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let isControlPressed = event.modifierFlags.contains(.control)
         defer { wasControlPressed = isControlPressed }
 
-        guard isControlPressed, !wasControlPressed else { return }
+        guard isControlPressed, !wasControlPressed, isEnabled else { return }
 
         overlayController.flash(at: NSEvent.mouseLocation)
+    }
+
+    @objc private func toggleEnabled() {
+        isEnabled.toggle()
+        toggleMenuItem?.state = isEnabled ? .on : .off
+        if !isEnabled {
+            overlayController.cancel()
+        }
     }
 
     @objc private func showAbout() {

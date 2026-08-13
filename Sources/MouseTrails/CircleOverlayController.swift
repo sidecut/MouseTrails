@@ -44,6 +44,12 @@ final class CircleOverlayController {
         }
     }
 
+    func cancel() {
+        animationTimer?.invalidate()
+        animationTimer = nil
+        window.orderOut(nil)
+    }
+
     private func advanceAnimation(timer: Timer) {
         currentStep += 1
         guard currentStep < steps else {
