@@ -25,6 +25,9 @@ rep.size = NSSize(width: size, height: size)
 NSGraphicsContext.saveGraphicsState()
 NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
 
+NSColor.white.setFill()
+NSRect(x: 0, y: 0, width: CGFloat(size), height: CGFloat(size)).fill()
+
 let lineWidth = CGFloat(size) * 0.075
 let inset = lineWidth / 2 + CGFloat(size) * 0.08
 let circleRect = NSRect(x: inset, y: inset, width: CGFloat(size) - inset * 2, height: CGFloat(size) - inset * 2)
