@@ -3,7 +3,7 @@ import AppKit
 final class CircleOverlayController {
     private let baseDiameter: CGFloat = 40
     private let maxDiameter: CGFloat = 120
-    private let totalDuration: TimeInterval = 0.5
+    private let totalDuration: TimeInterval = 0.25
     private let steps = 12
 
     private let window: NSWindow
