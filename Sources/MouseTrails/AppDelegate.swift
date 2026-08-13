@@ -23,11 +23,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        if let button = item.button {
-            let image = NSImage(systemSymbolName: "circle", accessibilityDescription: "MouseTrails")
-            image?.isTemplate = true
-            button.image = image
-        }
+        statusItem = item
+        updateStatusIcon()
 
         let menu = NSMenu()
         let toggleItem = NSMenuItem(title: "Enabled", action: #selector(toggleEnabled), keyEquivalent: "")
@@ -45,7 +42,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         item.menu = menu
-        statusItem = item
+    }
+
+    private func updateStatusIcon() {
+        guard let button = statusItem?.button else { return }
+        let symbolName = isEnabled ? "circle.fill" : "circle"
+        let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "MouseTrails")
+        if isEnabled {
+            let config = NSImage.SymbolConfiguration(paletteColors: [.systemOrange])
+            button.image = image?.withSymbolConfiguration(config)
+        } else {
+            image?.isTemplate = true
+            button.image = image
+        }
     }
 
     private func requestAccessibilityPermissionIfNeeded() {
@@ -71,6 +80,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleEnabled() {
         isEnabled.toggle()
         toggleMenuItem?.state = isEnabled ? .on : .off
+        updateStatusIcon()
         if !isEnabled {
             overlayController.cancel()
         }
