@@ -5,6 +5,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private let overlayController = CircleOverlayController()
     private var globalMonitor: Any?
+    private var localMonitor: Any?
     private var wasControlPressed = false
     private var toggleMenuItem: NSMenuItem?
     private var launchAtLoginMenuItem: NSMenuItem?
@@ -20,6 +21,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         if let globalMonitor {
             NSEvent.removeMonitor(globalMonitor)
+        }
+        if let localMonitor {
+            NSEvent.removeMonitor(localMonitor)
         }
     }
 
@@ -72,6 +76,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func startGlobalKeyMonitor() {
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             self?.handleFlagsChanged(event)
+        }
+        // The global monitor above only sees events destined for other apps, so it misses
+        // Control presses while one of our own windows (e.g. the About panel) is key.
+        localMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            self?.handleFlagsChanged(event)
+            return event
         }
     }
 
