@@ -1,4 +1,5 @@
 import AppKit
+import ServiceManagement
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
@@ -6,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var globalMonitor: Any?
     private var wasControlPressed = false
     private var toggleMenuItem: NSMenuItem?
+    private var launchAtLoginMenuItem: NSMenuItem?
     private var isEnabled = true
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -31,6 +33,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         toggleItem.state = isEnabled ? .on : .off
         menu.addItem(toggleItem)
         toggleMenuItem = toggleItem
+
+        menu.addItem(NSMenuItem.separator())
+        let launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
+        launchAtLoginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
+        menu.addItem(launchAtLoginItem)
+        launchAtLoginMenuItem = launchAtLoginItem
 
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "About MouseTrails", action: #selector(showAbout), keyEquivalent: ""))
@@ -83,6 +91,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !isEnabled {
             overlayController.cancel()
         }
+    }
+
+    @objc private func toggleLaunchAtLogin() {
+        let shouldEnable = SMAppService.mainApp.status != .enabled
+        do {
+            if shouldEnable {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+        } catch {
+            let alert = NSAlert()
+            alert.messageText = "Couldn't update Launch at Login"
+            alert.informativeText = error.localizedDescription
+            alert.runModal()
+        }
+        launchAtLoginMenuItem?.state = SMAppService.mainApp.status == .enabled ? .on : .off
     }
 
     @objc private func showAbout() {
