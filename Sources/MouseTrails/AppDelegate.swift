@@ -46,8 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func updateStatusIcon() {
         guard let button = statusItem?.button else { return }
-        let symbolName = isEnabled ? "circle.fill" : "circle"
-        let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "MouseTrails")
+        let image = NSImage(systemSymbolName: "circle", accessibilityDescription: "MouseTrails")
         if isEnabled {
             let config = NSImage.SymbolConfiguration(paletteColors: [.systemOrange])
             button.image = image?.withSymbolConfiguration(config)
