@@ -79,6 +79,9 @@ final class HotkeySettingsWindowController: NSWindowController {
             mainStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             mainStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             mainStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            // Wide enough that the "Hotkey Settings" title bar text isn't clipped —
+            // the checkbox/radio content alone fits a much narrower window.
+            mainStack.widthAnchor.constraint(greaterThanOrEqualToConstant: 280),
         ])
         window?.setContentSize(mainStack.fittingSize)
     }

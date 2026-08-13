@@ -151,7 +151,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         NSApp.activate(ignoringOtherApps: true)
-        hotkeySettingsWindowController?.window?.makeKeyAndOrderFront(nil)
+        if let window = hotkeySettingsWindowController?.window {
+            center(window, onScreenContaining: NSEvent.mouseLocation)
+            window.makeKeyAndOrderFront(nil)
+        }
+    }
+
+    private func center(_ window: NSWindow, onScreenContaining point: NSPoint) {
+        let screen = NSScreen.screens.first { $0.frame.contains(point) } ?? NSScreen.main
+        guard let screen else { return }
+        let visibleFrame = screen.visibleFrame
+        let size = window.frame.size
+        window.setFrameOrigin(
+            NSPoint(
+                x: visibleFrame.midX - size.width / 2,
+                y: visibleFrame.midY - size.height / 2
+            ))
     }
 
     @objc private func showAbout() {
