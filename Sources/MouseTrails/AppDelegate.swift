@@ -6,10 +6,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let overlayController = CircleOverlayController()
     private var globalMonitor: Any?
     private var localMonitor: Any?
-    private var wasHotkeyPressed = false
+    private var wasHotkeyMatched = false
     private var toggleMenuItem: NSMenuItem?
     private var launchAtLoginMenuItem: NSMenuItem?
     private var isEnabled = true
+    private var hotkeySettings = HotkeyDefaultsStore.load()
+    private var hotkeySettingsWindowController: HotkeySettingsWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -45,6 +47,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         launchAtLoginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
         menu.addItem(launchAtLoginItem)
         launchAtLoginMenuItem = launchAtLoginItem
+
+        menu.addItem(NSMenuItem.separator())
+        menu.addItem(
+            NSMenuItem(
+                title: "Hotkey Settings…", action: #selector(showHotkeySettings),
+                keyEquivalent: ""))
 
         menu.addItem(NSMenuItem.separator())
         menu.addItem(
@@ -93,11 +101,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handleFlagsChanged(_ event: NSEvent) {
-        let flags = event.modifierFlags
-        let isHotkeyPressed = flags.contains(.control) && flags.contains(.function)
-        defer { wasHotkeyPressed = isHotkeyPressed }
+        let requiredFlags = hotkeySettings.modifierFlags
+        let isMatch = !requiredFlags.isEmpty && event.modifierFlags.isSuperset(of: requiredFlags)
+        defer { wasHotkeyMatched = isMatch }
 
-        guard isHotkeyPressed, !wasHotkeyPressed, isEnabled else { return }
+        let shouldFire =
+            hotkeySettings.triggerOnKeyUp
+            ? (!isMatch && wasHotkeyMatched)
+            : (isMatch && !wasHotkeyMatched)
+
+        guard shouldFire, isEnabled else { return }
 
         overlayController.flash(at: NSEvent.mouseLocation)
     }
@@ -128,10 +141,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         launchAtLoginMenuItem?.state = SMAppService.mainApp.status == .enabled ? .on : .off
     }
 
+    @objc private func showHotkeySettings() {
+        if hotkeySettingsWindowController == nil {
+            hotkeySettingsWindowController = HotkeySettingsWindowController(
+                settings: hotkeySettings
+            ) { [weak self] updated in
+                self?.hotkeySettings = updated
+                HotkeyDefaultsStore.save(updated)
+            }
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        if let window = hotkeySettingsWindowController?.window {
+            center(window, onScreenContaining: NSEvent.mouseLocation)
+            window.makeKeyAndOrderFront(nil)
+        }
+    }
+
+    private func center(_ window: NSWindow, onScreenContaining point: NSPoint) {
+        let screen = NSScreen.screens.first { $0.frame.contains(point) } ?? NSScreen.main
+        guard let screen else { return }
+        let visibleFrame = screen.visibleFrame
+        let size = window.frame.size
+        window.setFrameOrigin(
+            NSPoint(
+                x: visibleFrame.midX - size.width / 2,
+                y: visibleFrame.midY - size.height / 2
+            ))
+    }
+
     @objc private func showAbout() {
         NSApp.activate(ignoringOtherApps: true)
+        let edge = hotkeySettings.triggerOnKeyUp ? "release" : "press"
         let credits = NSAttributedString(
-            string: "Press Fn+Control to flash a circle around the cursor.",
+            string: "\(hotkeySettings.comboDescription) triggers the flash on key \(edge).",
             attributes: [.font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)]
         )
         NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
