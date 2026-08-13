@@ -1,14 +1,18 @@
 import AppKit
 
 final class CircleOverlayController {
-    private let diameter: CGFloat = 40
-    private let displayDuration: TimeInterval = 1.0
+    private let baseDiameter: CGFloat = 40
+    private let maxDiameter: CGFloat = 120
+    private let totalDuration: TimeInterval = 0.5
+    private let steps = 6
 
     private let window: NSWindow
-    private var hideTimer: Timer?
+    private var animationTimer: Timer?
+    private var center: NSPoint = .zero
+    private var currentStep = 0
 
     init() {
-        let size = NSSize(width: diameter, height: diameter)
+        let size = NSSize(width: maxDiameter, height: maxDiameter)
         window = NSWindow(
             contentRect: NSRect(origin: .zero, size: size),
             styleMask: [.borderless],
@@ -21,17 +25,39 @@ final class CircleOverlayController {
         window.ignoresMouseEvents = true
         window.level = .screenSaver
         window.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
-        window.contentView = CircleOverlayView(frame: NSRect(origin: .zero, size: size))
+
+        let view = CircleOverlayView(frame: NSRect(origin: .zero, size: size))
+        view.autoresizingMask = [.width, .height]
+        window.contentView = view
     }
 
     func flash(at point: NSPoint) {
-        let origin = NSPoint(x: point.x - diameter / 2, y: point.y - diameter / 2)
-        window.setFrameOrigin(origin)
+        center = point
+        currentStep = 0
+        animationTimer?.invalidate()
+        applyFrame(forStep: 0)
         window.orderFront(nil)
 
-        hideTimer?.invalidate()
-        hideTimer = Timer.scheduledTimer(withTimeInterval: displayDuration, repeats: false) { [weak self] _ in
-            self?.window.orderOut(nil)
+        let interval = totalDuration / Double(steps)
+        animationTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] timer in
+            self?.advanceAnimation(timer: timer)
         }
+    }
+
+    private func advanceAnimation(timer: Timer) {
+        currentStep += 1
+        guard currentStep < steps else {
+            timer.invalidate()
+            window.orderOut(nil)
+            return
+        }
+        applyFrame(forStep: currentStep)
+    }
+
+    private func applyFrame(forStep step: Int) {
+        let progress = CGFloat(step) / CGFloat(steps - 1)
+        let diameter = baseDiameter + (maxDiameter - baseDiameter) * progress
+        let origin = NSPoint(x: center.x - diameter / 2, y: center.y - diameter / 2)
+        window.setFrame(NSRect(origin: origin, size: NSSize(width: diameter, height: diameter)), display: true)
     }
 }
