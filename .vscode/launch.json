@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:MouseTrails}",
+      "name": "Debug MouseTrails",
+      "target": "MouseTrails",
+      "configuration": "debug",
+      "preLaunchTask": "swift: Build Debug MouseTrails"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:MouseTrails}",
+      "name": "Release MouseTrails",
+      "target": "MouseTrails",
+      "configuration": "release",
+      "preLaunchTask": "swift: Build Release MouseTrails"
+    }
+  ]
+}
