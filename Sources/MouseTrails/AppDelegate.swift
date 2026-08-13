@@ -33,19 +33,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateStatusIcon()
 
         let menu = NSMenu()
-        let toggleItem = NSMenuItem(title: "Enabled", action: #selector(toggleEnabled), keyEquivalent: "")
+        let toggleItem = NSMenuItem(
+            title: "Enabled", action: #selector(toggleEnabled), keyEquivalent: "")
         toggleItem.state = isEnabled ? .on : .off
         menu.addItem(toggleItem)
         toggleMenuItem = toggleItem
 
         menu.addItem(NSMenuItem.separator())
-        let launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
+        let launchAtLoginItem = NSMenuItem(
+            title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
         launchAtLoginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
         menu.addItem(launchAtLoginItem)
         launchAtLoginMenuItem = launchAtLoginItem
 
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "About MouseTrails", action: #selector(showAbout), keyEquivalent: ""))
+        menu.addItem(
+            NSMenuItem(title: "About MouseTrails", action: #selector(showAbout), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
 
@@ -69,17 +72,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func requestAccessibilityPermissionIfNeeded() {
-        let options: [String: Any] = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
+        let options: [String: Any] = [
+            kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true
+        ]
         _ = AXIsProcessTrustedWithOptions(options as CFDictionary)
     }
 
     private func startGlobalKeyMonitor() {
-        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) {
+            [weak self] event in
             self?.handleFlagsChanged(event)
         }
         // The global monitor above only sees events destined for other apps, so it misses
         // the hotkey while one of our own windows (e.g. the About panel) is key.
-        localMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+        localMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) {
+            [weak self] event in
             self?.handleFlagsChanged(event)
             return event
         }
@@ -124,7 +131,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func showAbout() {
         NSApp.activate(ignoringOtherApps: true)
         let credits = NSAttributedString(
-            string: "Press Fn+Control to flash the cursor.",
+            string: "Press Fn+Control to flash a circle around the cursor.",
             attributes: [.font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)]
         )
         NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
