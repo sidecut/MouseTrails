@@ -19,10 +19,10 @@ enum ModifierOption: String, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .control: return "Control"
+        case .control: return "Ctrl"
         case .option: return "Option"
         case .shift: return "Shift"
-        case .command: return "Command"
+        case .command: return "Cmd"
         case .function: return "Fn"
         }
     }
