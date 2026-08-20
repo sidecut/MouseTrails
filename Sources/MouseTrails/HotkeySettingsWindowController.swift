@@ -1,23 +1,38 @@
 import AppKit
 
-final class HotkeySettingsWindowController: NSWindowController {
-    private var settings: HotkeySettings
-    private let onChange: (HotkeySettings) -> Void
+final class SettingsWindowController: NSWindowController {
+    private var hotkeySettings: HotkeySettings
+    private let onHotkeyChange: (HotkeySettings) -> Void
+    private var overlaySettings: OverlaySettings
+    private let onOverlayChange: (OverlaySettings) -> Void
+
     private var checkboxes: [ModifierOption: NSButton] = [:]
     private var keyDownRadio: NSButton!
     private var keyUpRadio: NSButton!
+    private var colorWell: NSColorWell!
+    private var lineWidthStepper: NSStepper!
+    private var lineWidthLabel: NSTextField!
+    private var repeatCountStepper: NSStepper!
+    private var repeatCountLabel: NSTextField!
 
-    init(settings: HotkeySettings, onChange: @escaping (HotkeySettings) -> Void) {
-        self.settings = settings
-        self.onChange = onChange
+    init(
+        hotkeySettings: HotkeySettings,
+        onHotkeyChange: @escaping (HotkeySettings) -> Void,
+        overlaySettings: OverlaySettings,
+        onOverlayChange: @escaping (OverlaySettings) -> Void
+    ) {
+        self.hotkeySettings = hotkeySettings
+        self.onHotkeyChange = onHotkeyChange
+        self.overlaySettings = overlaySettings
+        self.onOverlayChange = onOverlayChange
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 220, height: 200),
+            contentRect: NSRect(x: 0, y: 0, width: 280, height: 300),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
         )
-        window.title = "Hotkey Settings"
+        window.title = "Settings"
         window.isReleasedWhenClosed = false
 
         super.init(window: window)
@@ -32,6 +47,8 @@ final class HotkeySettingsWindowController: NSWindowController {
     private func buildUI() {
         guard let contentView = window?.contentView else { return }
 
+        // MARK: Hotkey section
+
         let modifiersLabel = NSTextField(labelWithString: "Trigger modifiers:")
         modifiersLabel.font = .boldSystemFont(ofSize: NSFont.systemFontSize)
 
@@ -44,7 +61,7 @@ final class HotkeySettingsWindowController: NSWindowController {
             let checkbox = NSButton(
                 checkboxWithTitle: option.displayName, target: self,
                 action: #selector(modifierToggled(_:)))
-            checkbox.state = settings.modifierOptions.contains(option) ? .on : .off
+            checkbox.state = hotkeySettings.modifierOptions.contains(option) ? .on : .off
             checkboxes[option] = checkbox
             checkboxStack.addArrangedSubview(checkbox)
         }
@@ -56,16 +73,76 @@ final class HotkeySettingsWindowController: NSWindowController {
             radioButtonWithTitle: "Key Down", target: self, action: #selector(edgeChanged(_:)))
         keyUpRadio = NSButton(
             radioButtonWithTitle: "Key Up", target: self, action: #selector(edgeChanged(_:)))
-        keyDownRadio.state = settings.triggerOnKeyUp ? .off : .on
-        keyUpRadio.state = settings.triggerOnKeyUp ? .on : .off
+        keyDownRadio.state = hotkeySettings.triggerOnKeyUp ? .off : .on
+        keyUpRadio.state = hotkeySettings.triggerOnKeyUp ? .on : .off
 
         let edgeStack = NSStackView(views: [keyDownRadio, keyUpRadio])
         edgeStack.orientation = .vertical
         edgeStack.alignment = .leading
         edgeStack.spacing = 4
 
+        // MARK: Appearance section
+
+        let appearanceLabel = NSTextField(labelWithString: "Appearance:")
+        appearanceLabel.font = .boldSystemFont(ofSize: NSFont.systemFontSize)
+
+        // Color row
+        let colorRowLabel = NSTextField(labelWithString: "Color:")
+        colorWell = NSColorWell(frame: NSRect(x: 0, y: 0, width: 44, height: 22))
+        colorWell.color = overlaySettings.color
+        colorWell.target = self
+        colorWell.action = #selector(colorChanged(_:))
+        let colorRow = NSStackView(views: [colorRowLabel, colorWell])
+        colorRow.orientation = .horizontal
+        colorRow.alignment = .centerY
+        colorRow.spacing = 8
+
+        // Line width row
+        let lineWidthRowLabel = NSTextField(labelWithString: "Line Width:")
+        lineWidthStepper = NSStepper()
+        lineWidthStepper.minValue = 1
+        lineWidthStepper.maxValue = 20
+        lineWidthStepper.increment = 1
+        lineWidthStepper.valueWraps = false
+        lineWidthStepper.doubleValue = Double(overlaySettings.lineWidth)
+        lineWidthStepper.target = self
+        lineWidthStepper.action = #selector(lineWidthChanged(_:))
+        lineWidthLabel = NSTextField(labelWithString: "\(Int(overlaySettings.lineWidth))")
+        lineWidthLabel.alignment = .right
+        lineWidthLabel.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+        let lineWidthRow = NSStackView(views: [lineWidthRowLabel, lineWidthStepper, lineWidthLabel])
+        lineWidthRow.orientation = .horizontal
+        lineWidthRow.alignment = .centerY
+        lineWidthRow.spacing = 4
+
+        // Repeat count row
+        let repeatCountRowLabel = NSTextField(labelWithString: "Repeat Count:")
+        repeatCountStepper = NSStepper()
+        repeatCountStepper.minValue = 1
+        repeatCountStepper.maxValue = 10
+        repeatCountStepper.increment = 1
+        repeatCountStepper.valueWraps = false
+        repeatCountStepper.integerValue = overlaySettings.repeatCount
+        repeatCountStepper.target = self
+        repeatCountStepper.action = #selector(repeatCountChanged(_:))
+        repeatCountLabel = NSTextField(labelWithString: "\(overlaySettings.repeatCount)")
+        repeatCountLabel.alignment = .right
+        repeatCountLabel.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+        let repeatCountRow = NSStackView(views: [repeatCountRowLabel, repeatCountStepper, repeatCountLabel])
+        repeatCountRow.orientation = .horizontal
+        repeatCountRow.alignment = .centerY
+        repeatCountRow.spacing = 4
+
+        let appearanceStack = NSStackView(views: [colorRow, lineWidthRow, repeatCountRow])
+        appearanceStack.orientation = .vertical
+        appearanceStack.alignment = .leading
+        appearanceStack.spacing = 8
+
+        // MARK: Main stack
+
         let mainStack = NSStackView(views: [
             modifiersLabel, checkboxStack, edgeLabel, edgeStack,
+            appearanceLabel, appearanceStack,
         ])
         mainStack.orientation = .vertical
         mainStack.alignment = .leading
@@ -79,25 +156,42 @@ final class HotkeySettingsWindowController: NSWindowController {
             mainStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             mainStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             mainStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            // Wide enough that the "Hotkey Settings" title bar text isn't clipped —
-            // the checkbox/radio content alone fits a much narrower window.
             mainStack.widthAnchor.constraint(greaterThanOrEqualToConstant: 280),
         ])
         window?.setContentSize(mainStack.fittingSize)
     }
 
+    // MARK: - Actions
+
     @objc private func modifierToggled(_ sender: NSButton) {
         guard let option = checkboxes.first(where: { $0.value === sender })?.key else { return }
         if sender.state == .on {
-            settings.modifierOptions.insert(option)
+            hotkeySettings.modifierOptions.insert(option)
         } else {
-            settings.modifierOptions.remove(option)
+            hotkeySettings.modifierOptions.remove(option)
         }
-        onChange(settings)
+        onHotkeyChange(hotkeySettings)
     }
 
     @objc private func edgeChanged(_ sender: NSButton) {
-        settings.triggerOnKeyUp = (sender === keyUpRadio)
-        onChange(settings)
+        hotkeySettings.triggerOnKeyUp = (sender === keyUpRadio)
+        onHotkeyChange(hotkeySettings)
+    }
+
+    @objc private func colorChanged(_ sender: NSColorWell) {
+        overlaySettings.color = sender.color
+        onOverlayChange(overlaySettings)
+    }
+
+    @objc private func lineWidthChanged(_ sender: NSStepper) {
+        overlaySettings.lineWidth = CGFloat(sender.integerValue)
+        lineWidthLabel.stringValue = "\(sender.integerValue)"
+        onOverlayChange(overlaySettings)
+    }
+
+    @objc private func repeatCountChanged(_ sender: NSStepper) {
+        overlaySettings.repeatCount = sender.integerValue
+        repeatCountLabel.stringValue = "\(sender.integerValue)"
+        onOverlayChange(overlaySettings)
     }
 }

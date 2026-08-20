@@ -11,10 +11,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var launchAtLoginMenuItem: NSMenuItem?
     private var isEnabled = true
     private var hotkeySettings = HotkeyDefaultsStore.load()
-    private var hotkeySettingsWindowController: HotkeySettingsWindowController?
+    private var overlaySettings = OverlayDefaultsStore.load()
+    private var settingsWindowController: SettingsWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        overlayController.settings = overlaySettings
         setupStatusItem()
         requestAccessibilityPermissionIfNeeded()
         startGlobalKeyMonitor()
@@ -50,7 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem.separator())
         menu.addItem(
             NSMenuItem(
-                title: "Hotkey Settings…", action: #selector(showHotkeySettings),
+                title: "Settings…", action: #selector(showHotkeySettings),
                 keyEquivalent: ""))
 
         menu.addItem(
@@ -139,16 +141,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func showHotkeySettings() {
-        if hotkeySettingsWindowController == nil {
-            hotkeySettingsWindowController = HotkeySettingsWindowController(
-                settings: hotkeySettings
-            ) { [weak self] updated in
-                self?.hotkeySettings = updated
-                HotkeyDefaultsStore.save(updated)
-            }
+        if settingsWindowController == nil {
+            settingsWindowController = SettingsWindowController(
+                hotkeySettings: hotkeySettings,
+                onHotkeyChange: { [weak self] updated in
+                    self?.hotkeySettings = updated
+                    HotkeyDefaultsStore.save(updated)
+                },
+                overlaySettings: overlaySettings,
+                onOverlayChange: { [weak self] updated in
+                    self?.overlaySettings = updated
+                    self?.overlayController.settings = updated
+                    OverlayDefaultsStore.save(updated)
+                }
+            )
         }
         NSApp.activate(ignoringOtherApps: true)
-        if let window = hotkeySettingsWindowController?.window {
+        if let window = settingsWindowController?.window {
             center(window, onScreenContaining: NSEvent.mouseLocation)
             window.makeKeyAndOrderFront(nil)
         }

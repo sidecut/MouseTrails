@@ -1,6 +1,8 @@
 import AppKit
 
 final class CircleOverlayController {
+    var settings = OverlaySettings.default
+
     private let baseDiameter: CGFloat = 10
     private let maxDiameter: CGFloat = 240
     private let totalDuration: TimeInterval = 0.25
@@ -10,6 +12,7 @@ final class CircleOverlayController {
     private var animationTimer: Timer?
     private var center: NSPoint = .zero
     private var currentStep = 0
+    private var currentRepeat = 0
 
     init() {
         let size = NSSize(width: maxDiameter, height: maxDiameter)
@@ -32,8 +35,10 @@ final class CircleOverlayController {
     }
 
     func flash(at point: NSPoint) {
+        (window.contentView as? CircleOverlayView)?.settings = settings
         center = point
         currentStep = 0
+        currentRepeat = 0
         animationTimer?.invalidate()
         applyFrame(forStep: 0)
         window.orderFront(nil)
@@ -53,8 +58,14 @@ final class CircleOverlayController {
     private func advanceAnimation(timer: Timer) {
         currentStep += 1
         guard currentStep < steps else {
-            timer.invalidate()
-            window.orderOut(nil)
+            currentRepeat += 1
+            if currentRepeat < settings.repeatCount {
+                currentStep = 0
+                applyFrame(forStep: 0)
+            } else {
+                timer.invalidate()
+                window.orderOut(nil)
+            }
             return
         }
         applyFrame(forStep: currentStep)
