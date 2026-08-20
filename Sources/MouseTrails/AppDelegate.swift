@@ -41,7 +41,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(toggleItem)
         toggleMenuItem = toggleItem
 
-        menu.addItem(NSMenuItem.separator())
         let launchAtLoginItem = NSMenuItem(
             title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
         launchAtLoginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
@@ -54,10 +53,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 title: "Hotkey Settings…", action: #selector(showHotkeySettings),
                 keyEquivalent: ""))
 
-        menu.addItem(NSMenuItem.separator())
         menu.addItem(
             NSMenuItem(title: "About MouseTrails", action: #selector(showAbout), keyEquivalent: ""))
-        menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
 
         for menuItem in menu.items {
