@@ -1,22 +1,22 @@
 import AppKit
 
-// Renders a 1024×1024 PNG of the MouseTrails icon:
-//   • Dark background with rounded corners
-//   • Orange expanding ring centred on the cursor tip
-//   • White arrow cursor with the tip at the ring's centre
-//   • Small orange dot at the hotspot
+// Renders a 1024×1024 PNG for MouseTrails:
+//   • Light gray background with rounded corners
+//   • Two concentric 270° arcs centred on the cursor tip
+//     (gap in the lower-right, where the cursor body points)
+//   • White arrow cursor with a bold dark outline
 //
 // Usage:  swift Scripts/generate_app_icon.swift <output-png-path>
 
 let size = 1024
 let fSize = CGFloat(size)
 
-// Anchor = cursor tip = ring centre.  Nudged slightly NW of the canvas
-// centre so the cursor body (which extends SE) reads as optically centred.
+// Cursor tip = arc centre.  Nudged NW of canvas centre so the cursor body
+// (which extends SE) reads as optically centred.
 let opticalOffset = fSize * 0.03
 let anchor = NSPoint(
     x: fSize / 2 - opticalOffset,
-    y: fSize / 2 + opticalOffset  // AppKit: y increases upward, so +offset is visually up
+    y: fSize / 2 + opticalOffset  // AppKit y-up: +offset = visually higher
 )
 
 guard let rep = NSBitmapImageRep(
@@ -37,29 +37,37 @@ NSGraphicsContext.saveGraphicsState()
 NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
 
 // Background
-let background = NSColor(red: 0x1C / 255, green: 0x1C / 255, blue: 0x1E / 255, alpha: 1)
-background.setFill()
+NSColor(red: 0xF0 / 255, green: 0xF0 / 255, blue: 0xF0 / 255, alpha: 1).setFill()
 NSBezierPath(
     roundedRect: NSRect(origin: .zero, size: NSSize(width: fSize, height: fSize)),
     xRadius: fSize * 0.225,
     yRadius: fSize * 0.225
 ).fill()
 
-// Orange expanding ring centred on the cursor tip
-let orange = NSColor(red: 1.0, green: 0x9F / 255, blue: 0x0A / 255, alpha: 1)
-let ringRadius = fSize * 0.234
-let ringRect = NSRect(
-    x: anchor.x - ringRadius, y: anchor.y - ringRadius,
-    width: ringRadius * 2, height: ringRadius * 2
-)
-let ringPath = NSBezierPath(ovalIn: ringRect)
-ringPath.lineWidth = fSize * 0.031
-orange.setStroke()
-ringPath.stroke()
+// Ink colour used for both arcs and cursor outline
+let ink = NSColor(red: 0x3C / 255, green: 0x3C / 255, blue: 0x3C / 255, alpha: 1)
 
-// White arrow cursor with tip at the anchor.
-// Normalized coordinates with tip at (0, 1) in AppKit's bottom-up unit box
-// (y=0 is the lowest point of the tail, y=1 is the tip).
+// Two 270° arcs centred on the cursor tip.
+//
+// appendArc CCW from 0° to 270° (AppKit y-up angles):
+//   0° (E/right) → 90° (N/up) → 180° (W/left) → 270° (S/down)
+// Covered arc: right side, top, left side, bottom.
+// Gap: from 270° (bottom) to 0°/360° (right) = the lower-right (SE) area,
+//   which is exactly where the cursor body extends. ✓
+let arcStroke = fSize * 0.048
+for radius in [fSize * 0.19, fSize * 0.27] {
+    let arc = NSBezierPath()
+    arc.appendArc(withCenter: anchor, radius: radius,
+                  startAngle: 0, endAngle: 270, clockwise: false)
+    arc.lineWidth = arcStroke
+    arc.lineCapStyle = .round
+    ink.setStroke()
+    arc.stroke()
+}
+
+// Arrow cursor with tip at the anchor.
+// Normalised coordinates: tip = (0, 1) in a bottom-up AppKit unit box;
+// y=0 is the lowest point of the tail.
 let cursorPoints: [(CGFloat, CGFloat)] = [
     (0.000, 1.000),  // tip
     (0.000, 0.111),  // bottom of left edge
@@ -82,29 +90,14 @@ for (i, pt) in cursorPoints.enumerated() {
     if i == 0 { cursorPath.move(to: p) } else { cursorPath.line(to: p) }
 }
 cursorPath.close()
+cursorPath.lineJoinStyle = .round
+cursorPath.lineWidth = fSize * 0.030
 
-// Subtle drop shadow: offset dark copy drawn first
-let shadowPath = cursorPath.copy() as! NSBezierPath
-shadowPath.transform(using: AffineTransform(
-    translationByX: fSize * 0.006, byY: -(fSize * 0.008)))
-NSColor.black.withAlphaComponent(0.35).setFill()
-shadowPath.fill()
-
-// Cursor fill and hairline inner stroke for definition on dark background
+// Fill then stroke: white interior with bold dark outline on all edges
 NSColor.white.setFill()
 cursorPath.fill()
-cursorPath.lineWidth = fSize * 0.014
-NSColor.black.withAlphaComponent(0.15).setStroke()
+ink.setStroke()
 cursorPath.stroke()
-
-// Orange hotspot dot at the tip, tying the cursor to the ring centre
-let dotRadius = fSize * 0.018
-let dotRect = NSRect(
-    x: anchor.x - dotRadius, y: anchor.y - dotRadius,
-    width: dotRadius * 2, height: dotRadius * 2
-)
-orange.setFill()
-NSBezierPath(ovalIn: dotRect).fill()
 
 NSGraphicsContext.restoreGraphicsState()
 
