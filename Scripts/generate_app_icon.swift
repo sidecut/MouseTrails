@@ -1,8 +1,8 @@
 import AppKit
 
-// Renders a 1024x1024 PNG of three concentric orange rings, evoking the
-// expanding ripple the app flashes around the mouse pointer, for use as
-// the base image when building AppIcon.icns.
+// Renders a 1024x1024 PNG of a mouse pointer with a radiating
+// black-and-white "click" burst around its tip, for use as the base
+// image when building AppIcon.icns.
 // Usage: swift Scripts/generate_app_icon.swift <output-png-path>
 
 let size = 1024
@@ -30,11 +30,38 @@ NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
 NSColor.white.setFill()
 NSRect(x: 0, y: 0, width: CGFloat(size), height: CGFloat(size)).fill()
 
-// A filled pointer glyph with its tip at the exact center, standing in
-// for the cursor the flash rings emanate from. Points are normalized to
-// a unit box with the tip at the top-left, matching a classic arrow
-// cursor's silhouette. Drawn in black-and-white so it reads as a plain
-// cursor underneath the colored rings drawn on top of it below.
+// "Click" burst: short black rays radiating from the pointer's tip,
+// alternating long/short for a sparkle feel. Drawn before the pointer
+// so the pointer sits cleanly on top near the tip, with the burst
+// showing through on the side the pointer doesn't cover.
+let rayInnerRadius = CGFloat(size) * 0.05
+let rayLengthFractions: [CGFloat] = [0.22, 0.15, 0.22, 0.15, 0.22, 0.15, 0.22, 0.15]
+let rayLineWidth = CGFloat(size) * 0.02
+
+for (index, lengthFraction) in rayLengthFractions.enumerated() {
+    let angle = CGFloat(index) * (.pi / 4)
+    let outerRadius = CGFloat(size) * lengthFraction
+    let start = NSPoint(
+        x: center.x + cos(angle) * rayInnerRadius,
+        y: center.y + sin(angle) * rayInnerRadius
+    )
+    let end = NSPoint(
+        x: center.x + cos(angle) * outerRadius,
+        y: center.y + sin(angle) * outerRadius
+    )
+    let ray = NSBezierPath()
+    ray.move(to: start)
+    ray.line(to: end)
+    ray.lineWidth = rayLineWidth
+    ray.lineCapStyle = .round
+    NSColor.black.setStroke()
+    ray.stroke()
+}
+
+// A filled pointer glyph with its tip at the exact center (the same
+// point the click burst radiates from). Points are normalized to a
+// unit box with the tip at the top-left (northwest corner), matching
+// a classic arrow cursor's silhouette.
 let cursorPoints: [(CGFloat, CGFloat)] = [
     (0.000, 1.000),
     (0.000, 0.111),
@@ -44,10 +71,8 @@ let cursorPoints: [(CGFloat, CGFloat)] = [
     (0.333, 0.361),
     (0.611, 0.361),
 ]
-let cursorHeight = CGFloat(size) * 0.40
+let cursorHeight = CGFloat(size) * 0.42
 let cursorWidth = cursorHeight * 0.611
-// The tip (first point, at normalized (0, 1)) lands exactly on center;
-// the rest of the glyph extends down and to the right from there.
 let cursorOrigin = NSPoint(x: center.x, y: center.y - cursorHeight)
 
 let cursorPath = NSBezierPath()
@@ -65,36 +90,9 @@ for (index, point) in cursorPoints.enumerated() {
 cursorPath.close()
 NSColor.black.setFill()
 cursorPath.fill()
-cursorPath.lineWidth = CGFloat(size) * 0.012
+cursorPath.lineWidth = CGFloat(size) * 0.014
 NSColor.white.setStroke()
 cursorPath.stroke()
-
-// Rings ripple outward from the center, on top of the pointer: bold and
-// opaque near the pointer, fading and thinning as they expand,
-// mirroring the app's flash animation.
-struct Ring {
-    let radiusFraction: CGFloat
-    let lineWidthFraction: CGFloat
-    let alpha: CGFloat
-}
-let rings = [
-    Ring(radiusFraction: 0.20, lineWidthFraction: 0.055, alpha: 1.0),
-    Ring(radiusFraction: 0.33, lineWidthFraction: 0.040, alpha: 0.65),
-    Ring(radiusFraction: 0.45, lineWidthFraction: 0.028, alpha: 0.35),
-]
-
-for ring in rings {
-    let radius = CGFloat(size) * ring.radiusFraction
-    let lineWidth = CGFloat(size) * ring.lineWidthFraction
-    let circleRect = NSRect(
-        x: center.x - radius, y: center.y - radius,
-        width: radius * 2, height: radius * 2
-    )
-    let path = NSBezierPath(ovalIn: circleRect)
-    path.lineWidth = lineWidth
-    NSColor.systemOrange.withAlphaComponent(ring.alpha).setStroke()
-    path.stroke()
-}
 
 NSGraphicsContext.restoreGraphicsState()
 
