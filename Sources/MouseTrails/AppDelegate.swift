@@ -70,7 +70,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let button = statusItem?.button else { return }
         let image = NSImage(systemSymbolName: "circle", accessibilityDescription: "MouseTrails")
         if isEnabled {
-            let config = NSImage.SymbolConfiguration(paletteColors: [.systemOrange])
+            let config = NSImage.SymbolConfiguration(paletteColors: [overlaySettings.color])
             button.image = image?.withSymbolConfiguration(config)
         } else {
             image?.isTemplate = true
@@ -152,6 +152,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 onOverlayChange: { [weak self] updated in
                     self?.overlaySettings = updated
                     self?.overlayController.settings = updated
+                    self?.updateStatusIcon()
                     OverlayDefaultsStore.save(updated)
                 }
             )
