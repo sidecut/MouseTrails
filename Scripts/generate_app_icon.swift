@@ -9,10 +9,9 @@ let size = 1024
 let canvasCenter = NSPoint(x: CGFloat(size) / 2, y: CGFloat(size) / 2)
 
 // The pointer's black silhouette extends down and to the right from
-// its tip, which visually pulls the tip+burst south-east. Nudge just
-// their shared anchor north-west of the canvas center so the tip
-// reads as optically centered; the rings stay on the true canvas
-// center so they keep an even margin all the way around.
+// its tip, which visually pulls the whole icon south-east. Nudge the
+// shared anchor for the tip, burst, and rings north-west of the
+// canvas center so the pointer reads as optically centered.
 let opticalOffset = CGFloat(size) * 0.03
 let anchor = NSPoint(x: canvasCenter.x - opticalOffset, y: canvasCenter.y + opticalOffset)
 
@@ -119,7 +118,7 @@ for ring in rings {
     let radius = CGFloat(size) * ring.radiusFraction
     let lineWidth = CGFloat(size) * ring.lineWidthFraction
     let circleRect = NSRect(
-        x: canvasCenter.x - radius, y: canvasCenter.y - radius,
+        x: anchor.x - radius, y: anchor.y - radius,
         width: radius * 2, height: radius * 2
     )
     let path = NSBezierPath(ovalIn: circleRect)
