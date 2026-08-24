@@ -109,7 +109,6 @@ struct Ring {
     let alpha: CGFloat
 }
 let rings = [
-    Ring(radiusFraction: 0.20, lineWidthFraction: 0.055, alpha: 1.0),
     Ring(radiusFraction: 0.33, lineWidthFraction: 0.040, alpha: 0.65),
     Ring(radiusFraction: 0.45, lineWidthFraction: 0.028, alpha: 0.35),
 ]
