@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!--
+    Proportions match generate_app_icon.swift exactly:
+      cursorHeight = 0.42 × 512 = 215      cursorWidth = cursorHeight × 0.611 = 131
+      opticalOffset = 0.03 × 512 = 15      tip = (256-15, 256-15) = (241, 241)
+      ring radius   = 0.234 × 512 = 120    ring stroke   = 0.031 × 512 = 16
+      dot radius    = 0.018 × 512 = 9      bg corner     = 0.225 × 512 = 115
+  -->
+  <defs>
+    <filter id="shadow" x="-20%" y="-15%" width="150%" height="145%">
+      <!-- Matches AffineTransform(translationByX: size×0.006, byY: -(size×0.008)) -->
+      <feDropShadow dx="3" dy="4" stdDeviation="5" flood-color="black" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="115" fill="#1C1C1E"/>
+
+  <!-- Orange ring centred on cursor tip -->
+  <circle cx="241" cy="241" r="120" fill="none" stroke="#FF9F0A" stroke-width="16"/>
+
+  <!-- White cursor arrow; tip at (241, 241).
+       AppKit normalized point (px, py) maps to SVG as:
+         x = 241 + px × 131
+         y = 241 + (1 − py) × 215   (SVG y increases downward) -->
+  <path d="M 241,241 L 241,432 L 270,390 L 288,456 L 303,444 L 285,378 L 321,378 Z"
+        fill="white" filter="url(#shadow)"/>
+
+  <!-- Orange hotspot dot at the tip -->
+  <circle cx="241" cy="241" r="9" fill="#FF9F0A"/>
+</svg>
