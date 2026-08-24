@@ -30,9 +30,48 @@ NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
 NSColor.white.setFill()
 NSRect(x: 0, y: 0, width: CGFloat(size), height: CGFloat(size)).fill()
 
-// Rings ripple outward from the center: bold and opaque near the
-// pointer, fading and thinning as they expand, mirroring the app's
-// flash animation.
+// A filled pointer glyph with its tip at the exact center, standing in
+// for the cursor the flash rings emanate from. Points are normalized to
+// a unit box with the tip at the top-left, matching a classic arrow
+// cursor's silhouette. Drawn in black-and-white so it reads as a plain
+// cursor underneath the colored rings drawn on top of it below.
+let cursorPoints: [(CGFloat, CGFloat)] = [
+    (0.000, 1.000),
+    (0.000, 0.111),
+    (0.222, 0.306),
+    (0.361, 0.000),
+    (0.472, 0.056),
+    (0.333, 0.361),
+    (0.611, 0.361),
+]
+let cursorHeight = CGFloat(size) * 0.40
+let cursorWidth = cursorHeight * 0.611
+// The tip (first point, at normalized (0, 1)) lands exactly on center;
+// the rest of the glyph extends down and to the right from there.
+let cursorOrigin = NSPoint(x: center.x, y: center.y - cursorHeight)
+
+let cursorPath = NSBezierPath()
+for (index, point) in cursorPoints.enumerated() {
+    let mapped = NSPoint(
+        x: cursorOrigin.x + point.0 * cursorWidth,
+        y: cursorOrigin.y + point.1 * cursorHeight
+    )
+    if index == 0 {
+        cursorPath.move(to: mapped)
+    } else {
+        cursorPath.line(to: mapped)
+    }
+}
+cursorPath.close()
+NSColor.black.setFill()
+cursorPath.fill()
+cursorPath.lineWidth = CGFloat(size) * 0.012
+NSColor.white.setStroke()
+cursorPath.stroke()
+
+// Rings ripple outward from the center, on top of the pointer: bold and
+// opaque near the pointer, fading and thinning as they expand,
+// mirroring the app's flash animation.
 struct Ring {
     let radiusFraction: CGFloat
     let lineWidthFraction: CGFloat
@@ -56,39 +95,6 @@ for ring in rings {
     NSColor.systemOrange.withAlphaComponent(ring.alpha).setStroke()
     path.stroke()
 }
-
-// A filled pointer glyph centered in the ripple, standing in for the
-// cursor the flash rings emanate from. Points are normalized to a
-// unit box with the tip at the top-left, matching a classic arrow
-// cursor's silhouette.
-let cursorPoints: [(CGFloat, CGFloat)] = [
-    (0.000, 1.000),
-    (0.000, 0.111),
-    (0.222, 0.306),
-    (0.361, 0.000),
-    (0.472, 0.056),
-    (0.333, 0.361),
-    (0.611, 0.361),
-]
-let cursorHeight = CGFloat(size) * 0.26
-let cursorWidth = cursorHeight * 0.611
-let cursorOrigin = NSPoint(x: center.x - cursorWidth / 2, y: center.y - cursorHeight / 2)
-
-let cursorPath = NSBezierPath()
-for (index, point) in cursorPoints.enumerated() {
-    let mapped = NSPoint(
-        x: cursorOrigin.x + point.0 * cursorWidth,
-        y: cursorOrigin.y + point.1 * cursorHeight
-    )
-    if index == 0 {
-        cursorPath.move(to: mapped)
-    } else {
-        cursorPath.line(to: mapped)
-    }
-}
-cursorPath.close()
-NSColor.systemOrange.setFill()
-cursorPath.fill()
 
 NSGraphicsContext.restoreGraphicsState()
 
