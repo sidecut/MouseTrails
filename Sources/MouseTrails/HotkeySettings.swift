@@ -31,9 +31,10 @@ enum ModifierOption: String, CaseIterable {
 struct HotkeySettings: Equatable {
     var modifierOptions: Set<ModifierOption>
     var triggerOnKeyUp: Bool
+    var isEnabled: Bool
 
     static let `default` = HotkeySettings(
-        modifierOptions: [.control, .function], triggerOnKeyUp: false)
+        modifierOptions: [.control, .function], triggerOnKeyUp: false, isEnabled: true)
 
     var modifierFlags: NSEvent.ModifierFlags {
         modifierOptions.reduce(into: []) { $0.formUnion($1.flag) }
@@ -55,6 +56,7 @@ struct HotkeySettings: Equatable {
 enum HotkeyDefaultsStore {
     private static let modifiersKey = "hotkeyModifiers"
     private static let triggerOnKeyUpKey = "hotkeyTriggerOnKeyUp"
+    private static let isEnabledKey = "hotkeyIsEnabled"
 
     static func load() -> HotkeySettings {
         let defaults = UserDefaults.standard
@@ -63,12 +65,18 @@ enum HotkeyDefaultsStore {
         }
         let options = Set(storedRaw.compactMap(ModifierOption.init(rawValue:)))
         let triggerOnKeyUp = defaults.bool(forKey: triggerOnKeyUpKey)
-        return HotkeySettings(modifierOptions: options, triggerOnKeyUp: triggerOnKeyUp)
+        var settings = HotkeySettings(
+            modifierOptions: options, triggerOnKeyUp: triggerOnKeyUp, isEnabled: true)
+        if defaults.object(forKey: isEnabledKey) != nil {
+            settings.isEnabled = defaults.bool(forKey: isEnabledKey)
+        }
+        return settings
     }
 
     static func save(_ settings: HotkeySettings) {
         let defaults = UserDefaults.standard
         defaults.set(settings.modifierOptions.map(\.rawValue), forKey: modifiersKey)
         defaults.set(settings.triggerOnKeyUp, forKey: triggerOnKeyUpKey)
+        defaults.set(settings.isEnabled, forKey: isEnabledKey)
     }
 }
