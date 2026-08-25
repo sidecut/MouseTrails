@@ -26,7 +26,7 @@ final class MouseTrailController {
     // (MouseTrailView's ghostHeight) or consecutive ghosts overlap heavily and
     // their stacked alpha reads as one blob larger than the real cursor.
     private let minSampleInterval: TimeInterval = 0.02
-    private let minSampleDistance: CGFloat = 16
+    private let minSampleDistance: CGFloat = 12
     private var lastSampleTime: TimeInterval = 0
     private var lastSamplePoint: NSPoint?
 
