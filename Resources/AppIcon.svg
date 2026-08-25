@@ -3,32 +3,37 @@
     Proportions match generate_app_icon.swift exactly (all fractions of 512):
       tip            = (241, 241)   [optical offset 0.03 × 512 = 15 from centre]
       cursorHeight   = 0.42 × 512 = 215
-      cursorWidth    = cursorHeight × 0.611 = 131
+      cursorWidth    = cursorHeight × 0.78 = 168
       inner arc r    = 0.19 × 512 = 97     arc stroke = 0.048 × 512 = 25
       outer arc r    = 0.27 × 512 = 138    bg corner  = 0.225 × 512 = 115
       cursor outline = 0.030 × 512 = 15
 
-    Arc direction: each arc starts at the east point (cx+r, cy) and sweeps
-    counterclockwise on-screen (SVG sweep=0) with large-arc=1 to the south
-    point (cx, cy+r).  This covers E→N→W→S (270°), leaving the SE gap where
-    the cursor body points.
+    Arc gap: the arcs leave a 64° gap centred on the SE bisector (45° from
+    east, measuring clockwise since SVG y points down) so the cursor sits
+    inside the gap with clearance on both sides, rather than one edge
+    touching the arc.
+
+    Cursor: built pointing straight down (tip at the centre, shaft running
+    south), then rotated -27° about the tip. The shape isn't symmetric
+    around its own "straight down" axis — the left edge is a straight
+    vertical line, but the tail flares out to only one side — so its
+    tip-relative angular span already leans toward the gap's SE bisector;
+    27° (not the full 45° to the bisector) centres that lopsided span in
+    the gap without the flared side crossing into the arc.
   -->
 
   <!-- Background -->
   <rect width="512" height="512" rx="115" fill="#F0F0F0"/>
 
-  <!-- Inner 270° arc (gap SE) -->
-  <path d="M 338,241 A 97,97,0,1,0,241,338"
-        fill="none" stroke="#3C3C3C" stroke-width="25" stroke-linecap="round"/>
+  <!-- Inner arc (64° gap, centred SE) -->
+  <path d="M 262.8,335.5 A 97,97,0,1,1,335.5,262.8"
+        fill="none" stroke="#FF9F0A" stroke-width="25" stroke-linecap="round"/>
 
-  <!-- Outer 270° arc (gap SE) -->
-  <path d="M 379,241 A 138,138,0,1,0,241,379"
-        fill="none" stroke="#3C3C3C" stroke-width="25" stroke-linecap="round"/>
+  <!-- Outer arc (64° gap, centred SE) -->
+  <path d="M 272.0,375.5 A 138,138,0,1,1,375.5,272.0"
+        fill="none" stroke="#FF9F0A" stroke-width="25" stroke-linecap="round"/>
 
-  <!-- Cursor arrow; tip at (241, 241).
-       AppKit normalised point (px, py) maps to SVG as:
-         x = 241 + px × 131
-         y = 241 + (1 − py) × 215   (SVG y increases downward) -->
-  <path d="M 241,241 L 241,432 L 270,390 L 288,456 L 303,444 L 285,378 L 321,378 Z"
+  <!-- Cursor arrow; tip at (241, 241), rotated -27° from straight-down. -->
+  <path d="M 241,241 L 327.8,411.3 L 341.9,357.1 L 392.6,405.1 L 403.7,385.9 L 353.1,338.1 L 394.7,316.9 Z"
         fill="white" stroke="#3C3C3C" stroke-width="15" stroke-linejoin="round"/>
 </svg>

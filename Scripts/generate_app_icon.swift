@@ -44,30 +44,36 @@ NSBezierPath(
     yRadius: fSize * 0.225
 ).fill()
 
-// Ink colour used for both arcs and cursor outline
+// Ink colour used for the cursor outline
 let ink = NSColor(red: 0x3C / 255, green: 0x3C / 255, blue: 0x3C / 255, alpha: 1)
 
-// Two 270° arcs centred on the cursor tip.
+// Orange used for the two arcs
+let orange = NSColor(red: 1.0, green: 0x9F / 255, blue: 0x0A / 255, alpha: 1)
+
+// Two arcs centred on the cursor tip, leaving a narrow gap in the lower-right
+// (SE) where the cursor body points, so the cursor sits centred in the gap
+// with clearance on both sides instead of touching one edge of the arc.
 //
-// appendArc CCW from 0° to 270° (AppKit y-up angles):
-//   0° (E/right) → 90° (N/up) → 180° (W/left) → 270° (S/down)
-// Covered arc: right side, top, left side, bottom.
-// Gap: from 270° (bottom) to 0°/360° (right) = the lower-right (SE) area,
-//   which is exactly where the cursor body extends. ✓
+// AppKit angles (y-up): 0°=E, 90°=N, 180°=W, 270°=S. The SE bisector is 315°.
+let gapDegrees: CGFloat = 64
+let gapCenter: CGFloat = 315
 let arcStroke = fSize * 0.048
 for radius in [fSize * 0.19, fSize * 0.27] {
     let arc = NSBezierPath()
     arc.appendArc(withCenter: anchor, radius: radius,
-                  startAngle: 0, endAngle: 270, clockwise: false)
+                  startAngle: gapCenter + gapDegrees / 2,
+                  endAngle: gapCenter - gapDegrees / 2 + 360,
+                  clockwise: false)
     arc.lineWidth = arcStroke
     arc.lineCapStyle = .round
-    ink.setStroke()
+    orange.setStroke()
     arc.stroke()
 }
 
 // Arrow cursor with tip at the anchor.
 // Normalised coordinates: tip = (0, 1) in a bottom-up AppKit unit box;
-// y=0 is the lowest point of the tail.
+// y=0 is the lowest point of the tail. Shape is built pointing straight
+// down, then rotated 45° about the tip so the shaft bisects the SE gap.
 let cursorPoints: [(CGFloat, CGFloat)] = [
     (0.000, 1.000),  // tip
     (0.000, 0.111),  // bottom of left edge
@@ -78,15 +84,23 @@ let cursorPoints: [(CGFloat, CGFloat)] = [
     (0.611, 0.361),  // shoulder
 ]
 let cursorHeight = fSize * 0.42
-let cursorWidth = cursorHeight * 0.611
-let cursorOrigin = NSPoint(x: anchor.x, y: anchor.y - cursorHeight)
+let cursorWidth = cursorHeight * 0.78
+// The shape above isn't symmetric around its "straight down" axis (its left
+// edge is a straight vertical line, but the tail flares out only to one
+// side), so its own angular span, tip-relative, runs roughly 270°–307°
+// rather than straddling 270° evenly. Rotating by the full 45° needed to
+// reach the gap's 315° bisector would push the flared side into the arc, so
+// rotate by less (~27°) to centre that lopsided span inside the gap instead.
+let cursorRotation: CGFloat = 27 * CGFloat.pi / 180
 
 let cursorPath = NSBezierPath()
 for (i, pt) in cursorPoints.enumerated() {
-    let p = NSPoint(
-        x: cursorOrigin.x + pt.0 * cursorWidth,
-        y: cursorOrigin.y + pt.1 * cursorHeight
-    )
+    // Position relative to the tip, before rotation (shaft points straight down).
+    let dx = pt.0 * cursorWidth
+    let dy = (pt.1 - 1) * cursorHeight
+    let rdx = dx * cos(cursorRotation) - dy * sin(cursorRotation)
+    let rdy = dx * sin(cursorRotation) + dy * cos(cursorRotation)
+    let p = NSPoint(x: anchor.x + rdx, y: anchor.y + rdy)
     if i == 0 { cursorPath.move(to: p) } else { cursorPath.line(to: p) }
 }
 cursorPath.close()
