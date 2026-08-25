@@ -5,7 +5,7 @@ final class MouseTrailView: NSView {
     /// Points in the view's own local coordinate space, oldest first, newest last.
     var points: [NSPoint] = []
 
-    private let ghostHeight: CGFloat = 22
+    private let ghostHeight: CGFloat = 18
 
     override var isOpaque: Bool { false }
 
@@ -18,7 +18,7 @@ final class MouseTrailView: NSView {
 
         for (index, point) in points.enumerated() {
             let progress = CGFloat(index + 1) / CGFloat(count)
-            let alpha = progress * progress * 0.85
+            let alpha = progress * progress * 0.7
             let path = GhostCursorShape.path(tip: point, height: ghostHeight)
             color.withAlphaComponent(alpha).setFill()
             path.fill()
