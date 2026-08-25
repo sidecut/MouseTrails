@@ -169,8 +169,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handleFlagsChanged(_ event: NSEvent) {
+        guard hotkeySettings.hasValidModifiers else { return }
+
         let requiredFlags = hotkeySettings.modifierFlags
-        let isMatch = !requiredFlags.isEmpty && event.modifierFlags.isSuperset(of: requiredFlags)
+        let isMatch = event.modifierFlags.isSuperset(of: requiredFlags)
         defer { wasHotkeyMatched = isMatch }
 
         let shouldFire =
@@ -187,8 +189,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         isEnabled.toggle()
         toggleMenuItem?.state = isEnabled ? .on : .off
         updateStatusIcon()
-        if !isEnabled {
+
+        if isEnabled {
+            if mouseTrailSettings.isEnabled {
+                startMouseTrailMonitor()
+            }
             overlayController.cancel()
+        } else {
+            overlayController.cancel()
+            if mouseTrailSettings.isEnabled {
+                stopMouseTrailMonitor()
+            }
         }
     }
 
@@ -261,9 +272,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showAbout() {
         NSApp.activate(ignoringOtherApps: true)
-        let edge = hotkeySettings.triggerOnKeyUp ? "release" : "press"
+
+        let creditsText: String
+        if hotkeySettings.hasValidModifiers {
+            let edge = hotkeySettings.triggerOnKeyUp ? "release" : "press"
+            creditsText = "\(hotkeySettings.comboDescription) triggers the flash on key \(edge)."
+        } else {
+            creditsText = "Hotkey is disabled because no modifiers are selected."
+        }
+
         let credits = NSAttributedString(
-            string: "\(hotkeySettings.comboDescription) triggers the flash on key \(edge).",
+            string: creditsText,
             attributes: [.font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)]
         )
         NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])

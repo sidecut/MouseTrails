@@ -32,7 +32,8 @@ struct HotkeySettings: Equatable {
     var modifierOptions: Set<ModifierOption>
     var triggerOnKeyUp: Bool
 
-    static let `default` = HotkeySettings(modifierOptions: [.control, .function], triggerOnKeyUp: false)
+    static let `default` = HotkeySettings(
+        modifierOptions: [.control, .function], triggerOnKeyUp: false)
 
     var modifierFlags: NSEvent.ModifierFlags {
         modifierOptions.reduce(into: []) { $0.formUnion($1.flag) }
@@ -44,6 +45,10 @@ struct HotkeySettings: Equatable {
             .filter { modifierOptions.contains($0) }
             .map(\.displayName)
             .joined(separator: "+")
+    }
+
+    var hasValidModifiers: Bool {
+        !modifierOptions.isEmpty
     }
 }
 
