@@ -1,31 +1,33 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <!--
-    Proportions match generate_app_icon.swift exactly:
-      cursorHeight = 0.42 × 512 = 215      cursorWidth = cursorHeight × 0.611 = 131
-      opticalOffset = 0.03 × 512 = 15      tip = (256-15, 256-15) = (241, 241)
-      ring radius   = 0.234 × 512 = 120    ring stroke   = 0.031 × 512 = 16
-      dot radius    = 0.018 × 512 = 9      bg corner     = 0.225 × 512 = 115
+    Proportions match generate_app_icon.swift exactly (all fractions of 512):
+      tip            = (241, 241)   [optical offset 0.03 × 512 = 15 from centre]
+      cursorHeight   = 0.42 × 512 = 215
+      cursorWidth    = cursorHeight × 0.78 = 168
+      inner arc r    = 0.19 × 512 = 97     arc stroke = 0.048 × 512 = 25
+      outer arc r    = 0.27 × 512 = 138    bg corner  = 0.225 × 512 = 115
+      cursor outline = 0.030 × 512 = 15
+
+    Cursor: built pointing straight down (tip at the centre, shaft running
+    south), then rotated -7° about the tip — a slight tilt off a vertical
+    left edge (0°), short of fully bisecting the SE gap (45°).
+
+    Arc gap: sized and positioned to bracket the rotated cursor's angular
+    span with clearance on both sides, rather than one edge touching it.
   -->
-  <defs>
-    <filter id="shadow" x="-20%" y="-15%" width="150%" height="145%">
-      <!-- Matches AffineTransform(translationByX: size×0.006, byY: -(size×0.008)) -->
-      <feDropShadow dx="3" dy="4" stdDeviation="5" flood-color="black" flood-opacity="0.35"/>
-    </filter>
-  </defs>
 
   <!-- Background -->
-  <rect width="512" height="512" rx="115" fill="#1C1C1E"/>
+  <rect width="512" height="512" rx="115" fill="#F0F0F0"/>
 
-  <!-- Orange ring centred on cursor tip -->
-  <circle cx="241" cy="241" r="120" fill="none" stroke="#FF9F0A" stroke-width="16"/>
+  <!-- Inner arc (62° gap) -->
+  <path d="M 232.5,337.6 A 97,97,0,1,1,322.4,293.8"
+        fill="none" stroke="#FF9F0A" stroke-width="25" stroke-linecap="round"/>
 
-  <!-- White cursor arrow; tip at (241, 241).
-       AppKit normalized point (px, py) maps to SVG as:
-         x = 241 + px × 131
-         y = 241 + (1 − py) × 215   (SVG y increases downward) -->
-  <path d="M 241,241 L 241,432 L 270,390 L 288,456 L 303,444 L 285,378 L 321,378 Z"
-        fill="white" filter="url(#shadow)"/>
+  <!-- Outer arc (62° gap) -->
+  <path d="M 229.0,378.5 A 138,138,0,1,1,356.7,316.2"
+        fill="none" stroke="#FF9F0A" stroke-width="25" stroke-linecap="round"/>
 
-  <!-- Orange hotspot dot at the tip -->
-  <circle cx="241" cy="241" r="9" fill="#FF9F0A"/>
+  <!-- Cursor arrow; tip at (241, 241), rotated -7° from straight-down. -->
+  <path d="M 241,241 L 264.3,430.7 L 296.1,384.6 L 327.3,447.1 L 344.3,432.8 L 313.2,370.6 L 359.5,364.9 Z"
+        fill="white" stroke="#3C3C3C" stroke-width="15" stroke-linejoin="round"/>
 </svg>
