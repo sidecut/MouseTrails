@@ -5,7 +5,7 @@ final class MouseTrailView: NSView {
     /// Points in the view's own local coordinate space, oldest first, newest last.
     var points: [NSPoint] = []
 
-    private let ghostHeight: CGFloat = 18
+    private let ghostHeight: CGFloat = 14
 
     override var isOpaque: Bool { false }
 
@@ -28,14 +28,14 @@ final class MouseTrailView: NSView {
             // stroke is drawn first and wider; filling over it leaves only its
             // outer half showing as a light halo, then a thin dark stroke on
             // top adds a crisp edge for light backgrounds.
-            path.lineWidth = 2.5
+            path.lineWidth = 1.75
             NSColor.white.withAlphaComponent(alpha * 0.9).setStroke()
             path.stroke()
 
             color.withAlphaComponent(alpha).setFill()
             path.fill()
 
-            path.lineWidth = 1
+            path.lineWidth = 0.75
             NSColor.black.withAlphaComponent(alpha * 0.55).setStroke()
             path.stroke()
         }
