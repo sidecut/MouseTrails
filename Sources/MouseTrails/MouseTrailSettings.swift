@@ -6,7 +6,7 @@ struct MouseTrailSettings: Equatable {
     var matchesSystemCursor: Bool
 
     static let `default` = MouseTrailSettings(
-        isEnabled: false, trailLength: 8, matchesSystemCursor: false)
+        isEnabled: false, trailLength: 8, matchesSystemCursor: true)
 }
 
 enum MouseTrailDefaultsStore {
