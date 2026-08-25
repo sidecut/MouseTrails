@@ -12,15 +12,21 @@ final class MouseTrailController {
     private let view: MouseTrailView
     private var points: [NSPoint] = []
     private var idleTimer: Timer?
+    private var decayTimer: Timer?
 
-    // Trail clears this long after the last recorded sample.
-    private let idleClearInterval: TimeInterval = 0.2
+    // Once the mouse has been still this long, the trail starts shedding its
+    // oldest ghost every decayStepInterval, so the ghosts peel off one at a time
+    // instead of all vanishing together the instant the mouse stops.
+    private let idleBeforeDecay: TimeInterval = 0.1
+    private let decayStepInterval: TimeInterval = 0.05
 
     // Minimum spacing between recorded points, in both time and distance, so a
     // fast move across the screen still produces discrete ghosts rather than one
-    // per pixel.
+    // per pixel. The distance must be close to the ghost's own footprint
+    // (MouseTrailView's ghostHeight) or consecutive ghosts overlap heavily and
+    // their stacked alpha reads as one blob larger than the real cursor.
     private let minSampleInterval: TimeInterval = 0.02
-    private let minSampleDistance: CGFloat = 8
+    private let minSampleDistance: CGFloat = 16
     private var lastSampleTime: TimeInterval = 0
     private var lastSamplePoint: NSPoint?
 
@@ -61,26 +67,55 @@ final class MouseTrailController {
         lastSampleTime = now
         lastSamplePoint = screenPoint
 
+        // New movement means the trail is alive again, so cancel any decay in
+        // progress from a previous pause rather than let it keep shedding ghosts
+        // out from under the fresh ones.
+        decayTimer?.invalidate()
+        decayTimer = nil
+
         points.append(screenPoint)
         trimBuffer()
         updateView()
         window.orderFront(nil)
 
         idleTimer?.invalidate()
-        idleTimer = Timer.scheduledTimer(withTimeInterval: idleClearInterval, repeats: false) {
+        idleTimer = Timer.scheduledTimer(withTimeInterval: idleBeforeDecay, repeats: false) {
             [weak self] _ in
-            self?.clear()
+            self?.beginDecay()
         }
     }
 
     func clear() {
         idleTimer?.invalidate()
         idleTimer = nil
+        decayTimer?.invalidate()
+        decayTimer = nil
         points.removeAll()
         lastSamplePoint = nil
         view.points = []
         view.needsDisplay = true
         window.orderOut(nil)
+    }
+
+    private func beginDecay() {
+        guard !points.isEmpty else { return }
+        decayTimer?.invalidate()
+        decayTimer = Timer.scheduledTimer(withTimeInterval: decayStepInterval, repeats: true) {
+            [weak self] timer in
+            guard let self, !self.points.isEmpty else {
+                timer.invalidate()
+                self?.decayTimer = nil
+                return
+            }
+            self.points.removeFirst()
+            self.updateView()
+            if self.points.isEmpty {
+                timer.invalidate()
+                self.decayTimer = nil
+                self.lastSamplePoint = nil
+                self.window.orderOut(nil)
+            }
+        }
     }
 
     private func trimBuffer() {
