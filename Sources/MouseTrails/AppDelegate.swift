@@ -68,14 +68,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func updateStatusIcon() {
         guard let button = statusItem?.button else { return }
-        let image = NSImage(systemSymbolName: "circle", accessibilityDescription: "MouseTrails")
         if isEnabled {
-            let config = NSImage.SymbolConfiguration(paletteColors: [overlaySettings.color])
-            button.image = image?.withSymbolConfiguration(config)
+            button.image = Self.statusIcon(color: overlaySettings.color)
         } else {
+            let image = NSImage(systemSymbolName: "circle", accessibilityDescription: "MouseTrails")
             image?.isTemplate = true
             button.image = image
         }
+    }
+
+    // The menu bar is translucent and sits over an arbitrary desktop background, so a
+    // solid dot in the user's chosen trail color can vanish against it (e.g. a magenta
+    // dot on a light blue bar). A dark-then-light double outline guarantees at least one
+    // ring contrasts with whatever is behind it.
+    private static func statusIcon(color: NSColor) -> NSImage {
+        let size = NSSize(width: 18, height: 18)
+        let image = NSImage(size: size, flipped: false) { rect in
+            let dot = NSBezierPath(ovalIn: rect.insetBy(dx: 3.5, dy: 3.5))
+            color.setFill()
+            dot.fill()
+
+            let innerRing = NSBezierPath(ovalIn: rect.insetBy(dx: 3.25, dy: 3.25))
+            innerRing.lineWidth = 1
+            NSColor.black.withAlphaComponent(0.5).setStroke()
+            innerRing.stroke()
+
+            let outerRing = NSBezierPath(ovalIn: rect.insetBy(dx: 2, dy: 2))
+            outerRing.lineWidth = 1
+            NSColor.white.withAlphaComponent(0.9).setStroke()
+            outerRing.stroke()
+
+            return true
+        }
+        image.accessibilityDescription = "MouseTrails"
+        image.isTemplate = false
+        return image
     }
 
     private func requestAccessibilityPermissionIfNeeded() {
