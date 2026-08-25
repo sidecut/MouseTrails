@@ -10,6 +10,11 @@ let package = Package(
         .executableTarget(
             name: "MouseTrails",
             path: "Sources/MouseTrails"
-        )
+        ),
+        .testTarget(
+            name: "MouseTrailsTests",
+            dependencies: ["MouseTrails"],
+            path: "Tests/MouseTrailsTests"
+        ),
     ]
 )

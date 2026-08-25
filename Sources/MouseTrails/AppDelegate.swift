@@ -173,12 +173,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let requiredFlags = hotkeySettings.modifierFlags
         let isMatch = event.modifierFlags.isSuperset(of: requiredFlags)
-        defer { wasHotkeyMatched = isMatch }
-
-        let shouldFire =
-            hotkeySettings.triggerOnKeyUp
-            ? (!isMatch && wasHotkeyMatched)
-            : (isMatch && !wasHotkeyMatched)
+        let shouldFire = HotkeyTransition.shouldFire(
+            previousMatch: wasHotkeyMatched,
+            currentMatch: isMatch,
+            triggerOnKeyUp: hotkeySettings.triggerOnKeyUp
+        )
+        wasHotkeyMatched = isMatch
 
         guard shouldFire, isEnabled else { return }
 
@@ -187,6 +187,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func toggleEnabled() {
         isEnabled.toggle()
+        wasHotkeyMatched = false
         toggleMenuItem?.state = isEnabled ? .on : .off
         updateStatusIcon()
 
@@ -225,7 +226,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             settingsWindowController = SettingsWindowController(
                 hotkeySettings: hotkeySettings,
                 onHotkeyChange: { [weak self] updated in
-                    self?.hotkeySettings = updated
+                    guard let self else { return }
+                    self.hotkeySettings = updated
+                    self.wasHotkeyMatched = false
                     HotkeyDefaultsStore.save(updated)
                 },
                 overlaySettings: overlaySettings,
