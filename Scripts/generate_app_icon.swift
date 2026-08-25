@@ -50,13 +50,16 @@ let ink = NSColor(red: 0x3C / 255, green: 0x3C / 255, blue: 0x3C / 255, alpha: 1
 // Orange used for the two arcs
 let orange = NSColor(red: 1.0, green: 0x9F / 255, blue: 0x0A / 255, alpha: 1)
 
-// Two arcs centred on the cursor tip, leaving a narrow gap in the lower-right
-// (SE) where the cursor body points, so the cursor sits centred in the gap
-// with clearance on both sides instead of touching one edge of the arc.
+// Two arcs centred on the cursor tip, leaving a gap sized and positioned to
+// bracket the (unrotated) cursor's own angular span with clearance on both
+// sides, instead of touching one edge of it.
 //
-// AppKit angles (y-up): 0°=E, 90°=N, 180°=W, 270°=S. The SE bisector is 315°.
-let gapDegrees: CGFloat = 64
-let gapCenter: CGFloat = 315
+// AppKit angles (y-up): 0°=E, 90°=N, 180°=W, 270°=S. The cursor's straight
+// left edge points due south (270°); its tail flares out to about 307°
+// (see cursorPoints below) — so the gap is centred at 289° rather than the
+// SE bisector (315°), which is where it would touch the flared side.
+let gapDegrees: CGFloat = 62
+let gapCenter: CGFloat = 289
 let arcStroke = fSize * 0.048
 for radius in [fSize * 0.19, fSize * 0.27] {
     let arc = NSBezierPath()
@@ -85,22 +88,14 @@ let cursorPoints: [(CGFloat, CGFloat)] = [
 ]
 let cursorHeight = fSize * 0.42
 let cursorWidth = cursorHeight * 0.78
-// The shape above isn't symmetric around its "straight down" axis (its left
-// edge is a straight vertical line, but the tail flares out only to one
-// side), so its own angular span, tip-relative, runs roughly 270°–307°
-// rather than straddling 270° evenly. Rotating by the full 45° needed to
-// reach the gap's 315° bisector would push the flared side into the arc, so
-// rotate by less (~27°) to centre that lopsided span inside the gap instead.
-let cursorRotation: CGFloat = 27 * CGFloat.pi / 180
+let cursorOrigin = NSPoint(x: anchor.x, y: anchor.y - cursorHeight)
 
 let cursorPath = NSBezierPath()
 for (i, pt) in cursorPoints.enumerated() {
-    // Position relative to the tip, before rotation (shaft points straight down).
-    let dx = pt.0 * cursorWidth
-    let dy = (pt.1 - 1) * cursorHeight
-    let rdx = dx * cos(cursorRotation) - dy * sin(cursorRotation)
-    let rdy = dx * sin(cursorRotation) + dy * cos(cursorRotation)
-    let p = NSPoint(x: anchor.x + rdx, y: anchor.y + rdy)
+    let p = NSPoint(
+        x: cursorOrigin.x + pt.0 * cursorWidth,
+        y: cursorOrigin.y + pt.1 * cursorHeight
+    )
     if i == 0 { cursorPath.move(to: p) } else { cursorPath.line(to: p) }
 }
 cursorPath.close()
