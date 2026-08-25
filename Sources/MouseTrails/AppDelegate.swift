@@ -10,7 +10,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var mouseMoveMonitor: Any?
     private var localMouseMoveMonitor: Any?
     private var wasHotkeyMatched = false
-    private var toggleMenuItem: NSMenuItem?
+    private var hotkeyEnabledMenuItem: NSMenuItem?
+    private var mouseTrailsMenuItem: NSMenuItem?
     private var launchAtLoginMenuItem: NSMenuItem?
     private var isEnabled = true
     private var hotkeySettings = HotkeyDefaultsStore.load()
@@ -52,11 +53,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateStatusIcon()
 
         let menu = NSMenu()
-        let toggleItem = NSMenuItem(
-            title: "Enabled", action: #selector(toggleEnabled), keyEquivalent: "")
-        toggleItem.state = isEnabled ? .on : .off
-        menu.addItem(toggleItem)
-        toggleMenuItem = toggleItem
+        let hotkeyEnabledItem = NSMenuItem(
+            title: "Hotkey Enabled", action: #selector(toggleHotkeyEnabled), keyEquivalent: "")
+        hotkeyEnabledItem.state = isEnabled ? .on : .off
+        menu.addItem(hotkeyEnabledItem)
+        hotkeyEnabledMenuItem = hotkeyEnabledItem
+
+        let mouseTrailsItem = NSMenuItem(
+            title: "Enable Mouse Trails", action: #selector(toggleMouseTrails), keyEquivalent: "")
+        mouseTrailsItem.state = mouseTrailSettings.isEnabled ? .on : .off
+        menu.addItem(mouseTrailsItem)
+        mouseTrailsMenuItem = mouseTrailsItem
 
         let launchAtLoginItem = NSMenuItem(
             title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
@@ -185,23 +192,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         overlayController.flash(at: NSEvent.mouseLocation)
     }
 
-    @objc private func toggleEnabled() {
+    @objc private func toggleHotkeyEnabled() {
         isEnabled.toggle()
         wasHotkeyMatched = false
-        toggleMenuItem?.state = isEnabled ? .on : .off
+        hotkeyEnabledMenuItem?.state = isEnabled ? .on : .off
         updateStatusIcon()
+        overlayController.cancel()
+    }
 
-        if isEnabled {
-            if mouseTrailSettings.isEnabled {
-                startMouseTrailMonitor()
-            }
-            overlayController.cancel()
+    @objc private func toggleMouseTrails() {
+        mouseTrailSettings.isEnabled.toggle()
+        mouseTrailsMenuItem?.state = mouseTrailSettings.isEnabled ? .on : .off
+        if mouseTrailSettings.isEnabled {
+            startMouseTrailMonitor()
         } else {
-            overlayController.cancel()
-            if mouseTrailSettings.isEnabled {
-                stopMouseTrailMonitor()
-            }
+            stopMouseTrailMonitor()
         }
+        MouseTrailDefaultsStore.save(mouseTrailSettings)
     }
 
     @objc private func toggleLaunchAtLogin() {
@@ -245,6 +252,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     let wasEnabled = self.mouseTrailSettings.isEnabled
                     self.mouseTrailSettings = updated
                     self.mouseTrailController.settings = updated
+                    self.mouseTrailsMenuItem?.state = updated.isEnabled ? .on : .off
                     if updated.isEnabled && !wasEnabled {
                         self.startMouseTrailMonitor()
                     } else if !updated.isEnabled && wasEnabled {
