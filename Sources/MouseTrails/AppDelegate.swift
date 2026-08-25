@@ -90,7 +90,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func updateStatusIcon() {
         guard let button = statusItem?.button else { return }
-        if isEnabled {
+        if isEnabled || mouseTrailSettings.isEnabled {
             button.image = Self.statusIcon(color: overlaySettings.color)
         } else {
             let image = NSImage(systemSymbolName: "circle", accessibilityDescription: "MouseTrails")
@@ -203,6 +203,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleMouseTrails() {
         mouseTrailSettings.isEnabled.toggle()
         mouseTrailsMenuItem?.state = mouseTrailSettings.isEnabled ? .on : .off
+        updateStatusIcon()
         if mouseTrailSettings.isEnabled {
             startMouseTrailMonitor()
         } else {
@@ -253,6 +254,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self.mouseTrailSettings = updated
                     self.mouseTrailController.settings = updated
                     self.mouseTrailsMenuItem?.state = updated.isEnabled ? .on : .off
+                    self.updateStatusIcon()
                     if updated.isEnabled && !wasEnabled {
                         self.startMouseTrailMonitor()
                     } else if !updated.isEnabled && wasEnabled {
