@@ -9,8 +9,8 @@
       cursor outline = 0.030 × 512 = 15
 
     Cursor: built pointing straight down (tip at the centre, shaft running
-    south), then rotated -13.5° about the tip — halfway between a vertical
-    left edge (0°) and fully bisecting the SE gap (45°).
+    south), then rotated -7° about the tip — a slight tilt off a vertical
+    left edge (0°), short of fully bisecting the SE gap (45°).
 
     Arc gap: sized and positioned to bracket the rotated cursor's angular
     span with clearance on both sides, rather than one edge touching it.
@@ -19,15 +19,15 @@
   <!-- Background -->
   <rect width="512" height="512" rx="115" fill="#F0F0F0"/>
 
-  <!-- Inner arc (63° gap) -->
-  <path d="M 241.8,338.0 A 97,97,0,1,1,327.8,284.3"
+  <!-- Inner arc (62° gap) -->
+  <path d="M 232.5,337.6 A 97,97,0,1,1,322.4,293.8"
         fill="none" stroke="#FF9F0A" stroke-width="25" stroke-linecap="round"/>
 
-  <!-- Outer arc (63° gap) -->
-  <path d="M 242.2,379.0 A 138,138,0,1,1,364.5,302.6"
+  <!-- Outer arc (62° gap) -->
+  <path d="M 229.0,378.5 A 138,138,0,1,1,356.7,316.2"
         fill="none" stroke="#FF9F0A" stroke-width="25" stroke-linecap="round"/>
 
-  <!-- Cursor arrow; tip at (241, 241), rotated -13.5° from straight-down. -->
-  <path d="M 241,241 L 285.6,426.9 L 312.0,377.4 L 350.1,436.0 L 365.4,419.9 L 327.4,361.6 L 372.7,350.7 Z"
+  <!-- Cursor arrow; tip at (241, 241), rotated -7° from straight-down. -->
+  <path d="M 241,241 L 264.3,430.7 L 296.1,384.6 L 327.3,447.1 L 344.3,432.8 L 313.2,370.6 L 359.5,364.9 Z"
         fill="white" stroke="#3C3C3C" stroke-width="15" stroke-linejoin="round"/>
 </svg>

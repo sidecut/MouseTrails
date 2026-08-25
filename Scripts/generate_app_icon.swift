@@ -50,13 +50,21 @@ let ink = NSColor(red: 0x3C / 255, green: 0x3C / 255, blue: 0x3C / 255, alpha: 1
 // Orange used for the two arcs
 let orange = NSColor(red: 1.0, green: 0x9F / 255, blue: 0x0A / 255, alpha: 1)
 
+// Cursor rotation about its tip, in degrees: 0° keeps its left edge vertical
+// (matching the reference image exactly); 45° would fully bisect the SE gap.
+// A small amount reads as more confidently "pointing" than a dead-vertical
+// arrow, without losing the vertical-edge look.
+let cursorRotationDegrees: CGFloat = 7
+
 // Two arcs centred on the cursor tip, leaving a gap sized and positioned to
 // bracket the cursor's own angular span (after rotation, below) with
 // clearance on both sides, instead of touching one edge of it.
 //
-// AppKit angles (y-up): 0°=E, 90°=N, 180°=W, 270°=S.
-let gapDegrees: CGFloat = 63
-let gapCenter: CGFloat = 302
+// AppKit angles (y-up): 0°=E, 90°=N, 180°=W, 270°=S. The cursor's own
+// angular span, unrotated, is centred around 289°; rotating the cursor
+// shifts that centre by the same amount.
+let gapDegrees: CGFloat = 62
+let gapCenter: CGFloat = 289 + cursorRotationDegrees
 let arcStroke = fSize * 0.048
 for radius in [fSize * 0.19, fSize * 0.27] {
     let arc = NSBezierPath()
@@ -73,8 +81,7 @@ for radius in [fSize * 0.19, fSize * 0.27] {
 // Arrow cursor with tip at the anchor.
 // Normalised coordinates: tip = (0, 1) in a bottom-up AppKit unit box;
 // y=0 is the lowest point of the tail. Shape is built pointing straight
-// down, then rotated 13.5° about the tip — halfway between a vertical left
-// edge (0°) and bisecting the SE gap (45°).
+// down, then rotated by cursorRotationDegrees about the tip.
 let cursorPoints: [(CGFloat, CGFloat)] = [
     (0.000, 1.000),  // tip
     (0.000, 0.111),  // bottom of left edge
@@ -86,7 +93,7 @@ let cursorPoints: [(CGFloat, CGFloat)] = [
 ]
 let cursorHeight = fSize * 0.42
 let cursorWidth = cursorHeight * 0.78
-let cursorRotation: CGFloat = 13.5 * CGFloat.pi / 180
+let cursorRotation = cursorRotationDegrees * CGFloat.pi / 180
 
 let cursorPath = NSBezierPath()
 for (i, pt) in cursorPoints.enumerated() {
