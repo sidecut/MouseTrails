@@ -4,22 +4,31 @@ import ServiceManagement
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private let overlayController = CircleOverlayController()
+    private let mouseTrailController = MouseTrailController()
     private var globalMonitor: Any?
     private var localMonitor: Any?
+    private var mouseMoveMonitor: Any?
+    private var localMouseMoveMonitor: Any?
     private var wasHotkeyMatched = false
     private var toggleMenuItem: NSMenuItem?
     private var launchAtLoginMenuItem: NSMenuItem?
     private var isEnabled = true
     private var hotkeySettings = HotkeyDefaultsStore.load()
     private var overlaySettings = OverlayDefaultsStore.load()
+    private var mouseTrailSettings = MouseTrailDefaultsStore.load()
     private var settingsWindowController: SettingsWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         overlayController.settings = overlaySettings
+        mouseTrailController.settings = mouseTrailSettings
+        mouseTrailController.color = overlaySettings.color
         setupStatusItem()
         requestAccessibilityPermissionIfNeeded()
         startGlobalKeyMonitor()
+        if mouseTrailSettings.isEnabled {
+            startMouseTrailMonitor()
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -28,6 +37,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if let localMonitor {
             NSEvent.removeMonitor(localMonitor)
+        }
+        if let mouseMoveMonitor {
+            NSEvent.removeMonitor(mouseMoveMonitor)
+        }
+        if let localMouseMoveMonitor {
+            NSEvent.removeMonitor(localMouseMoveMonitor)
         }
     }
 
@@ -126,6 +141,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func startMouseTrailMonitor() {
+        guard mouseMoveMonitor == nil else { return }
+        mouseMoveMonitor = NSEvent.addGlobalMonitorForEvents(matching: .mouseMoved) {
+            [weak self] _ in
+            self?.mouseTrailController.recordSample(at: NSEvent.mouseLocation)
+        }
+        // As with the hotkey monitor, the global monitor above misses movement while
+        // one of our own windows (e.g. Settings) is key, so mirror it locally too.
+        localMouseMoveMonitor = NSEvent.addLocalMonitorForEvents(matching: .mouseMoved) {
+            [weak self] event in
+            self?.mouseTrailController.recordSample(at: NSEvent.mouseLocation)
+            return event
+        }
+    }
+
+    private func stopMouseTrailMonitor() {
+        if let mouseMoveMonitor {
+            NSEvent.removeMonitor(mouseMoveMonitor)
+            self.mouseMoveMonitor = nil
+        }
+        if let localMouseMoveMonitor {
+            NSEvent.removeMonitor(localMouseMoveMonitor)
+            self.localMouseMoveMonitor = nil
+        }
+        mouseTrailController.clear()
+    }
+
     private func handleFlagsChanged(_ event: NSEvent) {
         let requiredFlags = hotkeySettings.modifierFlags
         let isMatch = !requiredFlags.isEmpty && event.modifierFlags.isSuperset(of: requiredFlags)
@@ -179,8 +221,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 onOverlayChange: { [weak self] updated in
                     self?.overlaySettings = updated
                     self?.overlayController.settings = updated
+                    self?.mouseTrailController.color = updated.color
                     self?.updateStatusIcon()
                     OverlayDefaultsStore.save(updated)
+                },
+                mouseTrailSettings: mouseTrailSettings,
+                onMouseTrailChange: { [weak self] updated in
+                    guard let self else { return }
+                    let wasEnabled = self.mouseTrailSettings.isEnabled
+                    self.mouseTrailSettings = updated
+                    self.mouseTrailController.settings = updated
+                    if updated.isEnabled && !wasEnabled {
+                        self.startMouseTrailMonitor()
+                    } else if !updated.isEnabled && wasEnabled {
+                        self.stopMouseTrailMonitor()
+                    }
+                    MouseTrailDefaultsStore.save(updated)
                 }
             )
         }

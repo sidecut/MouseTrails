@@ -5,6 +5,8 @@ final class SettingsWindowController: NSWindowController {
     private let onHotkeyChange: (HotkeySettings) -> Void
     private var overlaySettings: OverlaySettings
     private let onOverlayChange: (OverlaySettings) -> Void
+    private var mouseTrailSettings: MouseTrailSettings
+    private let onMouseTrailChange: (MouseTrailSettings) -> Void
 
     private var checkboxes: [ModifierOption: NSButton] = [:]
     private var keyDownRadio: NSButton!
@@ -14,17 +16,24 @@ final class SettingsWindowController: NSWindowController {
     private var lineWidthLabel: NSTextField!
     private var repeatCountStepper: NSStepper!
     private var repeatCountLabel: NSTextField!
+    private var trailEnabledCheckbox: NSButton!
+    private var trailLengthStepper: NSStepper!
+    private var trailLengthLabel: NSTextField!
 
     init(
         hotkeySettings: HotkeySettings,
         onHotkeyChange: @escaping (HotkeySettings) -> Void,
         overlaySettings: OverlaySettings,
-        onOverlayChange: @escaping (OverlaySettings) -> Void
+        onOverlayChange: @escaping (OverlaySettings) -> Void,
+        mouseTrailSettings: MouseTrailSettings,
+        onMouseTrailChange: @escaping (MouseTrailSettings) -> Void
     ) {
         self.hotkeySettings = hotkeySettings
         self.onHotkeyChange = onHotkeyChange
         self.overlaySettings = overlaySettings
         self.onOverlayChange = onOverlayChange
+        self.mouseTrailSettings = mouseTrailSettings
+        self.onMouseTrailChange = onMouseTrailChange
 
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 280, height: 300),
@@ -138,11 +147,46 @@ final class SettingsWindowController: NSWindowController {
         appearanceStack.alignment = .leading
         appearanceStack.spacing = 8
 
+        // MARK: Mouse Trails section
+
+        let trailsLabel = NSTextField(labelWithString: "Mouse Trails:")
+        trailsLabel.font = .boldSystemFont(ofSize: NSFont.systemFontSize)
+
+        trailEnabledCheckbox = NSButton(
+            checkboxWithTitle: "Enable Mouse Trails", target: self,
+            action: #selector(trailEnabledToggled(_:)))
+        trailEnabledCheckbox.state = mouseTrailSettings.isEnabled ? .on : .off
+
+        let trailLengthRowLabel = NSTextField(labelWithString: "Length:")
+        trailLengthStepper = NSStepper()
+        trailLengthStepper.minValue = 2
+        trailLengthStepper.maxValue = 20
+        trailLengthStepper.increment = 1
+        trailLengthStepper.valueWraps = false
+        trailLengthStepper.integerValue = mouseTrailSettings.trailLength
+        trailLengthStepper.target = self
+        trailLengthStepper.action = #selector(trailLengthChanged(_:))
+        trailLengthLabel = NSTextField(labelWithString: "\(mouseTrailSettings.trailLength)")
+        trailLengthLabel.alignment = .right
+        trailLengthLabel.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+        let trailLengthRow = NSStackView(views: [
+            trailLengthRowLabel, trailLengthStepper, trailLengthLabel,
+        ])
+        trailLengthRow.orientation = .horizontal
+        trailLengthRow.alignment = .centerY
+        trailLengthRow.spacing = 4
+
+        let trailsStack = NSStackView(views: [trailEnabledCheckbox, trailLengthRow])
+        trailsStack.orientation = .vertical
+        trailsStack.alignment = .leading
+        trailsStack.spacing = 8
+
         // MARK: Main stack
 
         let mainStack = NSStackView(views: [
             modifiersLabel, checkboxStack, edgeLabel, edgeStack,
             appearanceLabel, appearanceStack,
+            trailsLabel, trailsStack,
         ])
         mainStack.orientation = .vertical
         mainStack.alignment = .leading
@@ -193,5 +237,16 @@ final class SettingsWindowController: NSWindowController {
         overlaySettings.repeatCount = sender.integerValue
         repeatCountLabel.stringValue = "\(sender.integerValue)"
         onOverlayChange(overlaySettings)
+    }
+
+    @objc private func trailEnabledToggled(_ sender: NSButton) {
+        mouseTrailSettings.isEnabled = sender.state == .on
+        onMouseTrailChange(mouseTrailSettings)
+    }
+
+    @objc private func trailLengthChanged(_ sender: NSStepper) {
+        mouseTrailSettings.trailLength = sender.integerValue
+        trailLengthLabel.stringValue = "\(sender.integerValue)"
+        onMouseTrailChange(mouseTrailSettings)
     }
 }
