@@ -262,6 +262,18 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         onMouseTrailChange(mouseTrailSettings)
     }
 
+    // MARK: - External sync
+
+    // The window is created once and reused, so a menu-bar toggle (e.g. "Hotkey Enabled")
+    // made while the window is closed would otherwise leave these checkboxes stale next
+    // time the window is shown.
+    func syncEnabledStates(hotkeySettings: HotkeySettings, mouseTrailSettings: MouseTrailSettings) {
+        self.hotkeySettings = hotkeySettings
+        self.mouseTrailSettings = mouseTrailSettings
+        hotkeyEnabledCheckbox.state = hotkeySettings.isEnabled ? .on : .off
+        trailEnabledCheckbox.state = mouseTrailSettings.isEnabled ? .on : .off
+    }
+
     // MARK: - NSWindowDelegate
 
     func windowWillClose(_ notification: Notification) {

@@ -278,6 +278,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     MouseTrailDefaultsStore.save(updated)
                 }
             )
+        } else {
+            settingsWindowController?.syncEnabledStates(
+                hotkeySettings: hotkeySettings, mouseTrailSettings: mouseTrailSettings)
         }
         NSApp.activate(ignoringOtherApps: true)
         if let window = settingsWindowController?.window {
