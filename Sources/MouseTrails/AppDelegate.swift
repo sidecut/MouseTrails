@@ -207,6 +207,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateStatusIcon()
         overlayController.cancel()
         HotkeyDefaultsStore.save(hotkeySettings)
+        settingsWindowController?.syncEnabledStates(
+            hotkeySettings: hotkeySettings, mouseTrailSettings: mouseTrailSettings)
     }
 
     @objc private func toggleMouseTrails() {
@@ -219,6 +221,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             stopMouseTrailMonitor()
         }
         MouseTrailDefaultsStore.save(mouseTrailSettings)
+        settingsWindowController?.syncEnabledStates(
+            hotkeySettings: hotkeySettings, mouseTrailSettings: mouseTrailSettings)
     }
 
     @objc private func toggleLaunchAtLogin() {
