@@ -20,6 +20,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private var repeatCountStepper: NSStepper!
     private var repeatCountLabel: NSTextField!
     private var trailEnabledCheckbox: NSButton!
+    private var matchCursorCheckbox: NSButton!
     private var trailLengthStepper: NSStepper!
     private var trailLengthLabel: NSTextField!
 
@@ -184,6 +185,11 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             action: #selector(trailEnabledToggled(_:)))
         trailEnabledCheckbox.state = mouseTrailSettings.isEnabled ? .on : .off
 
+        matchCursorCheckbox = NSButton(
+            checkboxWithTitle: "Match system cursor", target: self,
+            action: #selector(matchCursorToggled(_:)))
+        matchCursorCheckbox.state = mouseTrailSettings.matchesSystemCursor ? .on : .off
+
         let trailLengthRowLabel = NSTextField(labelWithString: "Length:")
         trailLengthStepper = NSStepper()
         trailLengthStepper.minValue = 2
@@ -203,7 +209,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         trailLengthRow.alignment = .centerY
         trailLengthRow.spacing = 4
 
-        let trailsStack = NSStackView(views: [trailEnabledCheckbox, trailLengthRow])
+        let trailsStack = NSStackView(views: [
+            trailEnabledCheckbox, matchCursorCheckbox, trailLengthRow,
+        ])
         trailsStack.orientation = .vertical
         trailsStack.alignment = .leading
         trailsStack.spacing = 8
@@ -310,6 +318,11 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         onMouseTrailChange(mouseTrailSettings)
     }
 
+    @objc private func matchCursorToggled(_ sender: NSButton) {
+        mouseTrailSettings.matchesSystemCursor = sender.state == .on
+        onMouseTrailChange(mouseTrailSettings)
+    }
+
     @objc private func trailLengthChanged(_ sender: NSStepper) {
         mouseTrailSettings.trailLength = sender.integerValue
         trailLengthLabel.stringValue = "\(sender.integerValue)"
@@ -331,6 +344,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         self.launchAtLoginEnabled = launchAtLoginEnabled
         hotkeyEnabledCheckbox.state = hotkeySettings.isEnabled ? .on : .off
         trailEnabledCheckbox.state = mouseTrailSettings.isEnabled ? .on : .off
+        matchCursorCheckbox.state = mouseTrailSettings.matchesSystemCursor ? .on : .off
         launchAtLoginCheckbox.state = launchAtLoginEnabled ? .on : .off
     }
 

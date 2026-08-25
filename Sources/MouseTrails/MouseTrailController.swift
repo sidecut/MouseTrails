@@ -13,7 +13,7 @@ final class MouseTrailController {
     // window only appears on the screen whose space it was assigned to, so a
     // union window silently fails to show on every screen but one.
     private var overlays: [(window: NSWindow, view: MouseTrailView)] = []
-    private var points: [NSPoint] = []
+    private var samples: [TrailSample] = []
     private var idleTimer: Timer?
     private var decayTimer: Timer?
 
@@ -59,7 +59,18 @@ final class MouseTrailController {
         decayTimer?.invalidate()
         decayTimer = nil
 
-        points.append(screenPoint)
+        var cursorImage: NSImage?
+        var cursorHotSpot = NSPoint.zero
+        // currentSystem reflects the cursor set by any app, not just ours. It can
+        // be nil (or stale) when an app drives the cursor at a lower level; the
+        // nil-image sample falls back to the built-in arrow ghost.
+        if settings.matchesSystemCursor, let cursor = NSCursor.currentSystem {
+            cursorImage = cursor.image
+            cursorHotSpot = cursor.hotSpot
+        }
+        samples.append(
+            TrailSample(
+                location: screenPoint, cursorImage: cursorImage, cursorHotSpot: cursorHotSpot))
         trimBuffer()
         updateView()
         overlays.forEach { $0.window.orderFront(nil) }
@@ -76,28 +87,28 @@ final class MouseTrailController {
         idleTimer = nil
         decayTimer?.invalidate()
         decayTimer = nil
-        points.removeAll()
+        samples.removeAll()
         lastSamplePoint = nil
         for overlay in overlays {
-            overlay.view.points = []
+            overlay.view.samples = []
             overlay.view.needsDisplay = true
             overlay.window.orderOut(nil)
         }
     }
 
     private func beginDecay() {
-        guard !points.isEmpty else { return }
+        guard !samples.isEmpty else { return }
         decayTimer?.invalidate()
         decayTimer = Timer.scheduledTimer(withTimeInterval: decayStepInterval, repeats: true) {
             [weak self] timer in
-            guard let self, !self.points.isEmpty else {
+            guard let self, !self.samples.isEmpty else {
                 timer.invalidate()
                 self?.decayTimer = nil
                 return
             }
-            self.points.removeFirst()
+            self.samples.removeFirst()
             self.updateView()
-            if self.points.isEmpty {
+            if self.samples.isEmpty {
                 timer.invalidate()
                 self.decayTimer = nil
                 self.lastSamplePoint = nil
@@ -108,8 +119,8 @@ final class MouseTrailController {
 
     private func trimBuffer() {
         let maxCount = max(2, settings.trailLength)
-        if points.count > maxCount {
-            points.removeFirst(points.count - maxCount)
+        if samples.count > maxCount {
+            samples.removeFirst(samples.count - maxCount)
         }
         updateView()
     }
@@ -117,7 +128,12 @@ final class MouseTrailController {
     private func updateView() {
         for overlay in overlays {
             let origin = overlay.window.frame.origin
-            overlay.view.points = points.map { NSPoint(x: $0.x - origin.x, y: $0.y - origin.y) }
+            overlay.view.samples = samples.map { sample in
+                var local = sample
+                local.location = NSPoint(
+                    x: sample.location.x - origin.x, y: sample.location.y - origin.y)
+                return local
+            }
             overlay.view.needsDisplay = true
         }
     }
@@ -125,7 +141,7 @@ final class MouseTrailController {
     @objc private func screensChanged() {
         rebuildOverlays()
         updateView()
-        if !points.isEmpty {
+        if !samples.isEmpty {
             overlays.forEach { $0.window.orderFront(nil) }
         }
     }
