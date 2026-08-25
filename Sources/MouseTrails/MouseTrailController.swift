@@ -5,11 +5,14 @@ final class MouseTrailController {
         didSet { trimBuffer() }
     }
     var color: NSColor = .systemOrange {
-        didSet { view.color = color }
+        didSet { overlays.forEach { $0.view.color = color } }
     }
 
-    private let window: NSWindow
-    private let view: MouseTrailView
+    // One window per screen, not a single window spanning the union of all
+    // screens: when "Displays have separate Spaces" is on (the default), a
+    // window only appears on the screen whose space it was assigned to, so a
+    // union window silently fails to show on every screen but one.
+    private var overlays: [(window: NSWindow, view: MouseTrailView)] = []
     private var points: [NSPoint] = []
     private var idleTimer: Timer?
     private var decayTimer: Timer?
@@ -31,24 +34,7 @@ final class MouseTrailController {
     private var lastSamplePoint: NSPoint?
 
     init() {
-        let frame = Self.screensUnionFrame()
-        window = NSWindow(
-            contentRect: frame,
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false
-        )
-        window.isOpaque = false
-        window.backgroundColor = .clear
-        window.hasShadow = false
-        window.ignoresMouseEvents = true
-        window.level = .screenSaver
-        window.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
-
-        let view = MouseTrailView(frame: NSRect(origin: .zero, size: frame.size))
-        view.autoresizingMask = [.width, .height]
-        window.contentView = view
-        self.view = view
+        rebuildOverlays()
 
         NotificationCenter.default.addObserver(
             self, selector: #selector(screensChanged),
@@ -76,7 +62,7 @@ final class MouseTrailController {
         points.append(screenPoint)
         trimBuffer()
         updateView()
-        window.orderFront(nil)
+        overlays.forEach { $0.window.orderFront(nil) }
 
         idleTimer?.invalidate()
         idleTimer = Timer.scheduledTimer(withTimeInterval: idleBeforeDecay, repeats: false) {
@@ -92,9 +78,11 @@ final class MouseTrailController {
         decayTimer = nil
         points.removeAll()
         lastSamplePoint = nil
-        view.points = []
-        view.needsDisplay = true
-        window.orderOut(nil)
+        for overlay in overlays {
+            overlay.view.points = []
+            overlay.view.needsDisplay = true
+            overlay.window.orderOut(nil)
+        }
     }
 
     private func beginDecay() {
@@ -113,7 +101,7 @@ final class MouseTrailController {
                 timer.invalidate()
                 self.decayTimer = nil
                 self.lastSamplePoint = nil
-                self.window.orderOut(nil)
+                self.overlays.forEach { $0.window.orderOut(nil) }
             }
         }
     }
@@ -127,19 +115,47 @@ final class MouseTrailController {
     }
 
     private func updateView() {
-        let origin = window.frame.origin
-        view.points = points.map { NSPoint(x: $0.x - origin.x, y: $0.y - origin.y) }
-        view.needsDisplay = true
+        for overlay in overlays {
+            let origin = overlay.window.frame.origin
+            overlay.view.points = points.map { NSPoint(x: $0.x - origin.x, y: $0.y - origin.y) }
+            overlay.view.needsDisplay = true
+        }
     }
 
     @objc private func screensChanged() {
-        let frame = Self.screensUnionFrame()
-        window.setFrame(frame, display: false)
-        view.frame = NSRect(origin: .zero, size: frame.size)
+        rebuildOverlays()
         updateView()
+        if !points.isEmpty {
+            overlays.forEach { $0.window.orderFront(nil) }
+        }
     }
 
-    private static func screensUnionFrame() -> NSRect {
-        NSScreen.screens.reduce(NSRect.zero) { $0.union($1.frame) }
+    private func rebuildOverlays() {
+        for overlay in overlays {
+            overlay.window.orderOut(nil)
+        }
+        overlays = NSScreen.screens.map { screen in
+            let window = NSWindow(
+                contentRect: screen.frame,
+                styleMask: [.borderless],
+                backing: .buffered,
+                defer: false
+            )
+            window.isOpaque = false
+            window.backgroundColor = .clear
+            window.hasShadow = false
+            window.ignoresMouseEvents = true
+            window.level = .screenSaver
+            window.collectionBehavior = [
+                .canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle,
+            ]
+
+            let trailView = MouseTrailView(frame: NSRect(origin: .zero, size: screen.frame.size))
+            trailView.autoresizingMask = [.width, .height]
+            trailView.color = color
+            window.contentView = trailView
+
+            return (window, trailView)
+        }
     }
 }
