@@ -1,9 +1,17 @@
 import AppKit
 
+struct TrailSample {
+    var location: NSPoint
+    /// Snapshot of the system cursor at the time of the sample; nil means draw
+    /// the built-in arrow ghost instead.
+    var cursorImage: NSImage?
+    var cursorHotSpot: NSPoint
+}
+
 final class MouseTrailView: NSView {
     var color: NSColor = .systemOrange
-    /// Points in the view's own local coordinate space, oldest first, newest last.
-    var points: [NSPoint] = []
+    /// Samples in the view's own local coordinate space, oldest first, newest last.
+    var samples: [TrailSample] = []
 
     private let ghostHeight: CGFloat = 14
 
@@ -13,13 +21,30 @@ final class MouseTrailView: NSView {
         NSColor.clear.set()
         dirtyRect.fill()
 
-        let count = points.count
+        let count = samples.count
         guard count > 0 else { return }
 
-        for (index, point) in points.enumerated() {
+        for (index, sample) in samples.enumerated() {
             let progress = CGFloat(index + 1) / CGFloat(count)
             let alpha = progress * progress * 0.7
-            let path = GhostCursorShape.path(tip: point, height: ghostHeight)
+
+            if let image = sample.cursorImage {
+                // The recorded location is where the cursor's hotspot was, and the
+                // hotspot is measured from the image's top-left corner, so in this
+                // non-flipped view the image's origin sits below-left of it. Drawn
+                // at natural size so ghosts match the real cursor exactly; system
+                // cursors carry their own light/dark contrast, so no outline pass.
+                let size = image.size
+                let origin = NSPoint(
+                    x: sample.location.x - sample.cursorHotSpot.x,
+                    y: sample.location.y + sample.cursorHotSpot.y - size.height)
+                image.draw(
+                    in: NSRect(origin: origin, size: size), from: .zero,
+                    operation: .sourceOver, fraction: alpha)
+                continue
+            }
+
+            let path = GhostCursorShape.path(tip: sample.location, height: ghostHeight)
 
             // A light-then-dark double outline, same trick as the menu bar icon:
             // a solid color fill alone can vanish against a similarly-bright
