@@ -208,7 +208,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         overlayController.cancel()
         HotkeyDefaultsStore.save(hotkeySettings)
         settingsWindowController?.syncEnabledStates(
-            hotkeySettings: hotkeySettings, mouseTrailSettings: mouseTrailSettings)
+            hotkeySettings: hotkeySettings, mouseTrailSettings: mouseTrailSettings,
+            launchAtLoginEnabled: SMAppService.mainApp.status == .enabled)
     }
 
     @objc private func toggleMouseTrails() {
@@ -222,13 +223,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         MouseTrailDefaultsStore.save(mouseTrailSettings)
         settingsWindowController?.syncEnabledStates(
-            hotkeySettings: hotkeySettings, mouseTrailSettings: mouseTrailSettings)
+            hotkeySettings: hotkeySettings, mouseTrailSettings: mouseTrailSettings,
+            launchAtLoginEnabled: SMAppService.mainApp.status == .enabled)
     }
 
     @objc private func toggleLaunchAtLogin() {
-        let shouldEnable = SMAppService.mainApp.status != .enabled
+        let actual = applyLaunchAtLogin(enabled: SMAppService.mainApp.status != .enabled)
+        settingsWindowController?.syncEnabledStates(
+            hotkeySettings: hotkeySettings, mouseTrailSettings: mouseTrailSettings,
+            launchAtLoginEnabled: actual)
+    }
+
+    // Registration can fail, so re-read the actual status rather than assuming the
+    // request took effect, and report it back so callers can reflect reality.
+    @discardableResult
+    private func applyLaunchAtLogin(enabled: Bool) -> Bool {
         do {
-            if shouldEnable {
+            if enabled {
                 try SMAppService.mainApp.register()
             } else {
                 try SMAppService.mainApp.unregister()
@@ -239,7 +250,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             alert.informativeText = error.localizedDescription
             alert.runModal()
         }
-        launchAtLoginMenuItem?.state = SMAppService.mainApp.status == .enabled ? .on : .off
+        let actual = SMAppService.mainApp.status == .enabled
+        launchAtLoginMenuItem?.state = actual ? .on : .off
+        return actual
     }
 
     @objc private func showHotkeySettings() {
@@ -280,11 +293,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         self.stopMouseTrailMonitor()
                     }
                     MouseTrailDefaultsStore.save(updated)
+                },
+                isLaunchAtLoginEnabled: SMAppService.mainApp.status == .enabled,
+                onLaunchAtLoginToggle: { [weak self] requested in
+                    self?.applyLaunchAtLogin(enabled: requested)
+                        ?? (SMAppService.mainApp.status == .enabled)
                 }
             )
         } else {
             settingsWindowController?.syncEnabledStates(
-                hotkeySettings: hotkeySettings, mouseTrailSettings: mouseTrailSettings)
+                hotkeySettings: hotkeySettings, mouseTrailSettings: mouseTrailSettings,
+                launchAtLoginEnabled: SMAppService.mainApp.status == .enabled)
         }
         NSApp.activate(ignoringOtherApps: true)
         if let window = settingsWindowController?.window {
