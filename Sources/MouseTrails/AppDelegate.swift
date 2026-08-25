@@ -13,11 +13,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotkeyEnabledMenuItem: NSMenuItem?
     private var mouseTrailsMenuItem: NSMenuItem?
     private var launchAtLoginMenuItem: NSMenuItem?
-    private var isEnabled = true
     private var hotkeySettings = HotkeyDefaultsStore.load()
     private var overlaySettings = OverlayDefaultsStore.load()
     private var mouseTrailSettings = MouseTrailDefaultsStore.load()
     private var settingsWindowController: SettingsWindowController?
+    private let openSettingsOnLaunch: Bool
+
+    init(openSettingsOnLaunch: Bool) {
+        self.openSettingsOnLaunch = openSettingsOnLaunch
+        super.init()
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -29,6 +34,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         startGlobalKeyMonitor()
         if mouseTrailSettings.isEnabled {
             startMouseTrailMonitor()
+        }
+        if openSettingsOnLaunch {
+            showHotkeySettings()
         }
     }
 
@@ -55,7 +63,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
         let hotkeyEnabledItem = NSMenuItem(
             title: "Hotkey Enabled", action: #selector(toggleHotkeyEnabled), keyEquivalent: "")
-        hotkeyEnabledItem.state = isEnabled ? .on : .off
+        hotkeyEnabledItem.state = hotkeySettings.isEnabled ? .on : .off
         menu.addItem(hotkeyEnabledItem)
         hotkeyEnabledMenuItem = hotkeyEnabledItem
 
@@ -90,7 +98,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func updateStatusIcon() {
         guard let button = statusItem?.button else { return }
-        if isEnabled || mouseTrailSettings.isEnabled {
+        if hotkeySettings.isEnabled || mouseTrailSettings.isEnabled {
             button.image = Self.statusIcon(color: overlaySettings.color)
         } else {
             let image = NSImage(systemSymbolName: "circle", accessibilityDescription: "MouseTrails")
@@ -187,17 +195,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         wasHotkeyMatched = isMatch
 
-        guard shouldFire, isEnabled else { return }
+        guard shouldFire, hotkeySettings.isEnabled else { return }
 
         overlayController.flash(at: NSEvent.mouseLocation)
     }
 
     @objc private func toggleHotkeyEnabled() {
-        isEnabled.toggle()
+        hotkeySettings.isEnabled.toggle()
         wasHotkeyMatched = false
-        hotkeyEnabledMenuItem?.state = isEnabled ? .on : .off
+        hotkeyEnabledMenuItem?.state = hotkeySettings.isEnabled ? .on : .off
         updateStatusIcon()
         overlayController.cancel()
+        HotkeyDefaultsStore.save(hotkeySettings)
+        settingsWindowController?.syncEnabledStates(
+            hotkeySettings: hotkeySettings, mouseTrailSettings: mouseTrailSettings)
     }
 
     @objc private func toggleMouseTrails() {
@@ -210,6 +221,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             stopMouseTrailMonitor()
         }
         MouseTrailDefaultsStore.save(mouseTrailSettings)
+        settingsWindowController?.syncEnabledStates(
+            hotkeySettings: hotkeySettings, mouseTrailSettings: mouseTrailSettings)
     }
 
     @objc private func toggleLaunchAtLogin() {
@@ -235,8 +248,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 hotkeySettings: hotkeySettings,
                 onHotkeyChange: { [weak self] updated in
                     guard let self else { return }
+                    let wasEnabled = self.hotkeySettings.isEnabled
                     self.hotkeySettings = updated
                     self.wasHotkeyMatched = false
+                    self.hotkeyEnabledMenuItem?.state = updated.isEnabled ? .on : .off
+                    self.updateStatusIcon()
+                    if !updated.isEnabled && wasEnabled {
+                        self.overlayController.cancel()
+                    }
                     HotkeyDefaultsStore.save(updated)
                 },
                 overlaySettings: overlaySettings,
@@ -263,6 +282,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     MouseTrailDefaultsStore.save(updated)
                 }
             )
+        } else {
+            settingsWindowController?.syncEnabledStates(
+                hotkeySettings: hotkeySettings, mouseTrailSettings: mouseTrailSettings)
         }
         NSApp.activate(ignoringOtherApps: true)
         if let window = settingsWindowController?.window {

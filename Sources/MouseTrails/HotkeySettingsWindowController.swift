@@ -1,6 +1,6 @@
 import AppKit
 
-final class SettingsWindowController: NSWindowController {
+final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private var hotkeySettings: HotkeySettings
     private let onHotkeyChange: (HotkeySettings) -> Void
     private var overlaySettings: OverlaySettings
@@ -8,6 +8,7 @@ final class SettingsWindowController: NSWindowController {
     private var mouseTrailSettings: MouseTrailSettings
     private let onMouseTrailChange: (MouseTrailSettings) -> Void
 
+    private var hotkeyEnabledCheckbox: NSButton!
     private var checkboxes: [ModifierOption: NSButton] = [:]
     private var keyDownRadio: NSButton!
     private var keyUpRadio: NSButton!
@@ -45,6 +46,7 @@ final class SettingsWindowController: NSWindowController {
         window.isReleasedWhenClosed = false
 
         super.init(window: window)
+        window.delegate = self
         buildUI()
     }
 
@@ -57,6 +59,11 @@ final class SettingsWindowController: NSWindowController {
         guard let contentView = window?.contentView else { return }
 
         // MARK: Hotkey section
+
+        hotkeyEnabledCheckbox = NSButton(
+            checkboxWithTitle: "Hotkey Enabled", target: self,
+            action: #selector(hotkeyEnabledToggled(_:)))
+        hotkeyEnabledCheckbox.state = hotkeySettings.isEnabled ? .on : .off
 
         let modifiersLabel = NSTextField(labelWithString: "Trigger modifiers:")
         modifiersLabel.font = .boldSystemFont(ofSize: NSFont.systemFontSize)
@@ -184,7 +191,7 @@ final class SettingsWindowController: NSWindowController {
         // MARK: Main stack
 
         let mainStack = NSStackView(views: [
-            modifiersLabel, checkboxStack, edgeLabel, edgeStack,
+            hotkeyEnabledCheckbox, modifiersLabel, checkboxStack, edgeLabel, edgeStack,
             appearanceLabel, appearanceStack,
             trailsLabel, trailsStack,
         ])
@@ -206,6 +213,11 @@ final class SettingsWindowController: NSWindowController {
     }
 
     // MARK: - Actions
+
+    @objc private func hotkeyEnabledToggled(_ sender: NSButton) {
+        hotkeySettings.isEnabled = sender.state == .on
+        onHotkeyChange(hotkeySettings)
+    }
 
     @objc private func modifierToggled(_ sender: NSButton) {
         guard let option = checkboxes.first(where: { $0.value === sender })?.key else { return }
@@ -248,5 +260,23 @@ final class SettingsWindowController: NSWindowController {
         mouseTrailSettings.trailLength = sender.integerValue
         trailLengthLabel.stringValue = "\(sender.integerValue)"
         onMouseTrailChange(mouseTrailSettings)
+    }
+
+    // MARK: - External sync
+
+    // The window is created once and reused, so a menu-bar toggle (e.g. "Hotkey Enabled")
+    // made while the window is closed would otherwise leave these checkboxes stale next
+    // time the window is shown.
+    func syncEnabledStates(hotkeySettings: HotkeySettings, mouseTrailSettings: MouseTrailSettings) {
+        self.hotkeySettings = hotkeySettings
+        self.mouseTrailSettings = mouseTrailSettings
+        hotkeyEnabledCheckbox.state = hotkeySettings.isEnabled ? .on : .off
+        trailEnabledCheckbox.state = mouseTrailSettings.isEnabled ? .on : .off
+    }
+
+    // MARK: - NSWindowDelegate
+
+    func windowWillClose(_ notification: Notification) {
+        NSColorPanel.shared.close()
     }
 }
